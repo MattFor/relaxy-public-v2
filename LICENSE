@@ -1,0 +1,172 @@
+Relaxy Source-Available License, Version 1.0.0
+
+Copyright (c) 2026 MattFor. All rights reserved.
+Contact: mattfor@relaxy.xyz
+
+This is not an open source license. It grants the right to read the Software
+and nothing else. By accessing, viewing, downloading, cloning or forking the
+Software You accept these terms. If You do not accept them, do not access the
+Software.
+
+1. DEFINITIONS
+
+"Software" means the source code, configuration, type definitions and other
+material in this repository, in the redacted form published here or in any
+other form supplied by the Licensor.
+
+"Licensor" means MattFor, the copyright holder.
+
+"You" means the individual or legal entity accessing the Software.
+
+"Fork" means any copy of the repository held under Your control, including one
+created by a hosting platform's fork, clone, mirror, import or template
+feature.
+
+"Third-Party Components" means software authored by others that the Software
+depends on or references, including packages declared in package.json and
+package-lock.json. Third-Party Components are not covered by this License and
+remain under the terms of their own licenses.
+
+2. OWNERSHIP
+
+The Software is the original work of the Licensor and is protected by copyright
+in every country party to the Berne Convention, which is to say substantially
+every country in the world. Publication of the Software in public view is not
+publication into the public domain, is not a waiver of any right, and is not an
+offer of an open source license.
+
+3. GRANT
+
+Subject to Section 4, the Licensor grants You a personal, non-exclusive,
+non-transferable, revocable, royalty-free license to view, read and inspect the
+Software for private study and evaluation.
+
+4. RESTRICTIONS
+
+Except as expressly permitted in Section 3, You may not, in whole or in part:
+
+  a. copy, reproduce or store the Software beyond the local copy needed to
+     view it;
+  b. Fork the Software, or retain a Fork, except as Section 5 provides;
+  c. run, execute, host, deploy or otherwise operate the Software;
+  d. modify the Software or create derivative works from it;
+  e. distribute, publish, transmit, sublicense, rent, lease, sell or otherwise
+     make the Software available to any third party;
+  f. reuse the Software, or any portion of its structure, logic or expression,
+     in any other project, whether or not that project is distributed and
+     whether or not identifiers, formatting or comments have been changed;
+  g. use the Software to train, fine-tune or evaluate any machine learning or
+     artificial intelligence model, or include it in any dataset used for that
+     purpose;
+  h. remove, obscure or alter any copyright, license or attribution notice;
+  i. reconstruct redacted portions of the Software and represent the result as
+     the Software or as licensed by the Licensor.
+
+Translating the Software into another programming language, or transcribing it
+with renamed identifiers, is a derivative work under paragraph d and a reuse
+under paragraph f.
+
+5. HOSTING PLATFORMS AND FORKS
+
+The Software is published on hosting platforms whose terms of service may
+oblige the Licensor to permit other users of the same platform to fork the
+repository through platform features. Where such a term binds the Licensor,
+this License does not purport to override it, and a Fork created by that
+feature and kept on that platform is tolerated to the extent the platform's
+terms require.
+
+That toleration is limited to holding the Fork. It grants no right to run,
+modify, publish, relicense or reuse the Software, and every restriction in
+Section 4 continues to apply to the contents of any Fork. No platform feature,
+and no absence of a technical restriction, is a grant of rights by the
+Licensor.
+
+6. RESERVED RIGHTS
+
+All rights not expressly granted in Section 3 are reserved by the Licensor. No
+rights are granted by implication, estoppel, course of dealing or otherwise.
+
+7. TRADEMARKS, BRANDING AND ASSETS
+
+This License grants no right to the name "Relaxy", the Licensor's name, or any
+logo, artwork, image, font, sound, data file, database content or documentation
+associated with the Software. Those require a separate written agreement.
+
+8. COMMERCIAL AND EXTENDED LICENSING
+
+Rights beyond Section 3, including the right to run, modify, deploy or
+redistribute the Software, are available only under a separate written
+agreement with the Licensor and on payment of any fee the Licensor sets.
+Requests go to mattfor@relaxy.xyz.
+
+9. NO CONTRIBUTIONS
+
+The Licensor accepts no contributions to this repository. Submissions of code,
+patches or pull requests will be rejected. Any submission made regardless is
+assigned to the Licensor without compensation, and the Licensor may use it
+without restriction.
+
+10. TERMINATION
+
+This License terminates automatically and without notice if You breach any of
+its terms. On termination You must stop accessing the Software, delete every
+copy in Your possession and remove any Fork. Sections 2, 6, 7, 11, 12, 13, 14
+and 15 survive termination.
+
+11. REMEDIES
+
+You acknowledge that a breach of Section 4 would cause the Licensor harm that
+money alone cannot repair, and that the Licensor is entitled to seek an
+injunction or other equitable relief without posting a bond, in addition to
+damages, delivery up, destruction of infringing copies, an account of profits
+and any other remedy available at law. The Licensor may pursue any of these
+remedies concurrently and in more than one country.
+
+The Licensor may issue takedown notices to hosting providers, package
+registries and platforms in respect of any material that infringes the
+Software.
+
+To the extent permitted by applicable law, You shall bear the Licensor's
+reasonable legal costs incurred in enforcing this License against You where the
+Licensor's claim succeeds.
+
+12. GOVERNING LAW AND VENUE
+
+This License is governed by the laws of the Republic of Poland, excluding its
+conflict of law rules and excluding the United Nations Convention on Contracts
+for the International Sale of Goods.
+
+The courts of the Republic of Poland having jurisdiction over the Licensor's
+place of residence are competent to hear any dispute arising from this License.
+That venue is non-exclusive in the Licensor's favour: the Licensor may instead
+bring proceedings in any country where the infringement occurs, where an
+infringing copy is distributed or made available, or where You reside, are
+established or do business, and may rely on the copyright law of that country.
+
+Nothing in this Section deprives You of the protection of any mandatory
+provision of the law of Your country of habitual residence that cannot be
+derogated from by agreement.
+
+13. NO WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. The Software is
+published in redacted and incomplete form and is not represented as functional,
+buildable or fit for any purpose.
+
+14. LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OF OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+15. GENERAL
+
+If any provision of this License is held unenforceable, it shall be narrowed to
+the minimum extent needed to make it enforceable, or severed if that is not
+possible, and the remaining provisions stay in full force. The Licensor's
+failure to enforce a provision is not a waiver of it. This License is the
+entire agreement between You and the Licensor regarding the Software and
+supersedes any prior understanding.

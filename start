@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+if ! command -v node >/dev/null 2>&1; then
+  for nvm_file in "$HOME/.nvm/nvm.sh" "${NVM_DIR:-$HOME/.nvm}/nvm.sh"; do
+    if [ -s "$nvm_file" ]; then
+      # shellcheck disable=SC1090
+      . "$nvm_file"
+      break
+    fi
+  done
+fi
+
+NODE_BIN="$(command -v node || true)"
+if [ -z "$NODE_BIN" ]; then
+  echo "node not found. Load nvm or install Node first."
+  exit 1
+fi
+
+export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-64}"
+
+ENTRYPOINT="bot/Manager.js"
+
+if [ "${1:-}" = "--client" ]; then
+  ENTRYPOINT="bot/Client.js"
+  shift
+elif [ "${1:-}" = "--bridge" ]; then
+  # Cross-hosting bridge (one per machine)
+  ENTRYPOINT="bot/Bridge.js"
+  shift
+fi
+
+echo "Starting $ENTRYPOINT..."
+
+exec nice -n -20 "$NODE_BIN" --stack_size=1000 --trace-uncaught --max-old-space-size=6144 "$ENTRYPOINT" "$@"

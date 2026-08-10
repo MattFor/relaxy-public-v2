@@ -1,0 +1,79 @@
+#!/bin/sh
+
+CDN_DIR="${CDN_DIR:-$HOME/cdn}"
+NVM_DIR="${NVM_DIR:-$HOME/.config/nvm}"
+BOT_DIR="${BOT_DIR:-$HOME/relaxy/machine}"
+
+LIB64_ARG=""
+if [ -d /lib64 ]; then
+    LIB64_ARG="--ro-bind /lib64 /lib64"
+fi
+
+NVM_ARG=""
+if [ -d "$NVM_DIR" ]; then
+    NVM_ARG="--ro-bind $NVM_DIR $NVM_DIR"
+fi
+
+CDN_ARG=""
+if [ -d "$CDN_DIR" ]; then
+    CDN_ARG="--ro-bind $CDN_DIR $CDN_DIR"
+else
+    echo "warning: $CDN_DIR not found; the bot will download its assets instead." >&2
+fi
+
+FONTS_ARG=""
+if [ -d /etc/fonts ]; then
+    FONTS_ARG="--ro-bind /etc/fonts /etc/fonts"
+fi
+if [ -d /var/cache/fontconfig ]; then
+    FONTS_ARG="$FONTS_ARG --ro-bind /var/cache/fontconfig /var/cache/fontconfig"
+fi
+
+SSH_KEY="$HOME/.ssh/id_ed25519"
+KNOWN_HOSTS="$HOME/.ssh/known_hosts"
+
+GIT_ARG="--ro-bind /etc/passwd /etc/passwd"
+
+if [ -f "$SSH_KEY" ]; then
+    GIT_ARG="$GIT_ARG --ro-bind $SSH_KEY $SSH_KEY"
+else
+    echo "warning: $SSH_KEY not found; the manager's 'sync' command will not be able to pull." >&2
+fi
+
+if [ -f "$KNOWN_HOSTS" ]; then
+    GIT_ARG="$GIT_ARG --ro-bind $KNOWN_HOSTS $KNOWN_HOSTS"
+fi
+
+if [ -f "$HOME/.gitconfig" ]; then
+    GIT_ARG="$GIT_ARG --ro-bind $HOME/.gitconfig $HOME/.gitconfig"
+fi
+
+export PATH="$NVM_DIR/versions/node/v24.18.0/bin:${PATH}"
+ 
+exec bwrap \
+    --ro-bind /usr /usr \
+    --ro-bind /lib /lib \
+    $LIB64_ARG \
+    --ro-bind /bin /bin \
+    --ro-bind /sbin /sbin \
+    --ro-bind /etc/resolv.conf /etc/resolv.conf \
+    --ro-bind /etc/nsswitch.conf /etc/nsswitch.conf \
+    --ro-bind /etc/hosts /etc/hosts \
+    --ro-bind /etc/ssl /etc/ssl \
+    $NVM_ARG \
+    $CDN_ARG \
+    $FONTS_ARG \
+    $GIT_ARG \
+    --proc /proc \
+    --dev /dev \
+    --tmpfs /tmp \
+    --dir /tmp/cache \
+    --setenv XDG_CACHE_HOME /tmp/cache \
+    --bind "$BOT_DIR" "$BOT_DIR" \
+    --unshare-pid \
+    --unshare-ipc \
+    --unshare-uts \
+    --die-with-parent \
+    --chdir "$BOT_DIR" \
+    -- \
+    ./start
