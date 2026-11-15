@@ -1,4 +1,4 @@
-# relaxy-public-v2
+# Relaxy! Public v2
 
 [![CI](https://github.com/MattFor/relaxy-public-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/MattFor/relaxy-public-v2/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MattFor/relaxy-public-v2)](https://github.com/MattFor/relaxy-public-v2/releases)
