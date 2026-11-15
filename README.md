@@ -1,58 +1,16 @@
-# Relaxy! (v1.0.0 - public source)
+# relaxy-public-v2
 
-At long last, a partially redacted, read-only mirror of the Relaxy! Discord bot.  
+[![CI](https://github.com/MattFor/relaxy-public-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/MattFor/relaxy-public-v2/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/MattFor/relaxy-public-v2)](https://github.com/MattFor/relaxy-public-v2/releases)
+[![License: source-available](https://img.shields.io/badge/license-source--available-blue.svg)](LICENSE)
+
+A partially redacted, read-only mirror of the Relaxy! Discord bot, published as a showcase that cannot run.
+
+## Features
+
 Relaxy! is a sharded bot covering moderation, levelling, an economy, music, image generation, tickets, welcome cards and
 cross-server role and moderation syncing, backed by MongoDB and built to run on hardware as small
 as a Raspberry Pi.
-
-The working source lives in a private repository. This copy exists so the code can be read. I'd like to be transparent with what I offer.
-
-## What has been redacted
-
-Every comment has been stripped from every source file. The comments in the private tree carry
-the reasoning behind most of the decisions that look strange without it, so what remains here is
-structure and logic with none of the history.
-
-These are removed as well:
-
-| Path                              | Reason                                                                                   |
-| --------------------------------- | ---------------------------------------------------------------------------------------- |
-| `bot/commands/administrator/`     | Owner tooling: console access, database export and transform, blacklist, raid simulation |
-| `src/Client/Modules/MusicPlayer/` | The patched music pipeline                                                               |
-| `.env`, `.env.example`            | Secrets and host paths                                                                   |
-| `docs/`                           | Architecture and maintenance notes                                                       |
-| `scripts/`                        | Deployment, migration and dependency tooling                                             |
-
-## This code does not run!
-
-With no configuration, no music player and no owner commands, it will not start. As per the [LICENSE](LICENSE) it's for
-reading only, you cannot use any of this code, only study it.
-
-## Contact
-
-|         |                      |
-| ------- | -------------------- |
-| Email   | mattfor@relaxy.xyz   |
-| Discord | `mattfor`            |
-| Website | <https://relaxy.xyz> |
-
-Feel free to message me, I'd be extremely happy to talk about this project!
-
-## Built with
-
-|          |                                                                                                                                         |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime  | Node.js v24.17.0+, ES6 modules                                                                                                          |
-| Discord  | discord.js v14, `@discordjs/voice`, discord-api-types                                                                                   |
-| Sharding | discord-hybrid-sharding, discord-cross-hosting for multi-machine fleets                                                                 |
-| Database | MongoDB via mongoose                                                                                                                    |
-| Audio    | discord-player v7 (custom), SoundCloud and YouTube extractors, discord-voip, ffmpeg-static, fluent-ffmpeg, sodium-native, opus bindings |
-| Images   | canvas, canvacord, sharp, discord-image-generation, emoji-mixer                                                                         |
-| Text     | natural, stopword, fuse.js, `@web-scrobbler/metadata-filter`, google-translate, tesseract-ocr out of process                            |
-| Types    | TypeScript declarations over plain JavaScript, `checkJs` off                                                                            |
-| Process  | bubblewrap sandbox, MongoDB-backed settings, `.env` for host paths and secrets                                                          |
-
-## What it does
 
 162 public commands across five categories, plus 58 Discord and music event handlers.
 
@@ -96,7 +54,7 @@ coinflip, dice and an eight ball.
 
 ### Music
 
-A patched discord-player with YouTube and SoundCloud extractors, equalizer, filters, lyrics and a
+A patched discord-player with YouTube and SoundCloud extractors, equaliser, filters, lyrics and a
 prefetcher. A track that resolves but produces no stream is retried before anything is said to
 the channel, and the volume stage always stays in the pipeline so volume remains settable.
 
@@ -116,6 +74,57 @@ respawning until it is over. A dashboard write API that routes each mutation to 
 owning the guild. A garbage collector reconciling stored ids against Discord, with a 180-day
 grace before a departed guild's data is purged and 30 days for a departed member's.
 
----
+### Built with
 
-By MattFor - 2026
+|          |                                                                                                                                         |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime  | Node.js v24.17.0+, ES6 modules                                                                                                          |
+| Discord  | discord.js v14, `@discordjs/voice`, discord-api-types                                                                                   |
+| Sharding | discord-hybrid-sharding, discord-cross-hosting for multi-machine fleets                                                                 |
+| Database | MongoDB via mongoose                                                                                                                    |
+| Audio    | discord-player v7 (custom), SoundCloud and YouTube extractors, discord-voip, ffmpeg-static, fluent-ffmpeg, sodium-native, opus bindings |
+| Images   | canvas, canvacord, sharp, discord-image-generation, emoji-mixer                                                                         |
+| Text     | natural, stopword, fuse.js, `@web-scrobbler/metadata-filter`, google-translate, tesseract-ocr out of process                            |
+| Types    | TypeScript declarations over plain JavaScript, `checkJs` off                                                                            |
+| Process  | bubblewrap sandbox, MongoDB-backed settings, `.env` for host paths and secrets                                                          |
+
+## Usage
+
+The working source lives in a private repository. This copy exists so the code can be read. I'd like to be transparent with what I offer.
+
+### What has been redacted
+
+Every comment has been stripped from every source file. The comments in the private tree carry
+the reasoning behind most of the decisions that look strange without it, so what remains here is
+structure and logic with none of the history.
+
+These are removed as well:
+
+| Path                              | Reason                                                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------------- |
+| `bot/commands/administrator/`     | Owner tooling: console access, database export and transform, blacklist, raid simulation |
+| `src/Client/Modules/MusicPlayer/` | The patched music pipeline                                                               |
+| `.env`, `.env.example`            | Secrets and host paths                                                                   |
+| `docs/`                           | Architecture and maintenance notes                                                       |
+| `scripts/`                        | Deployment, migration and dependency tooling                                             |
+
+### This code does not run!
+
+With no configuration, no music player and no owner commands, it will not start. As per the [LICENSE](LICENSE) it's for
+reading only, you cannot use any of this code, only study it.
+
+## Contributing
+
+### Contact
+
+|         |                      |
+| ------- | -------------------- |
+| Email   | mattfor@relaxy.xyz   |
+| Discord | `mattfor`            |
+| Website | <https://relaxy.xyz> |
+
+Feel free to message me, I'd be extremely happy to talk about this project!
+
+## License
+
+Source-available, see [LICENSE](LICENSE). By [MattFor](https://github.com/MattFor).
