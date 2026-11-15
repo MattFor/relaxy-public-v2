@@ -1,74 +1,51 @@
 'use strict';
-export const patchPrototype = (target, FreshClass) =>
-{
-    const liveProto = typeof target === 'function'
-        ? target.prototype
-        : Object.getPrototypeOf(target);
+export const patchPrototype = (target, FreshClass) => {
+    const liveProto = typeof target === 'function' ? target.prototype : Object.getPrototypeOf(target);
     const freshProto = FreshClass.prototype;
 
-    for (const name of Object.getOwnPropertyNames(freshProto))
-    {
-        if (name === 'constructor')
-        {
+    for (const name of Object.getOwnPropertyNames(freshProto)) {
+        if (name === 'constructor') {
             continue;
         }
 
         Object.defineProperty(liveProto, name, Object.getOwnPropertyDescriptor(freshProto, name));
     }
 
-    for (const name of Object.getOwnPropertyNames(liveProto))
-    {
-        if (name === 'constructor')
-        {
+    for (const name of Object.getOwnPropertyNames(liveProto)) {
+        if (name === 'constructor') {
             continue;
         }
 
-        if (!Object.prototype.hasOwnProperty.call(freshProto, name))
-        {
+        if (!Object.prototype.hasOwnProperty.call(freshProto, name)) {
             delete liveProto[name];
         }
     }
 
     const liveCtor = liveProto.constructor;
-    if (typeof liveCtor === 'function')
-    {
-        const reserved = new Set([
-            'length',
-            'name',
-            'prototype'
-        ]);
+    if (typeof liveCtor === 'function') {
+        const reserved = new Set(['length', 'name', 'prototype']);
 
-        for (const name of Object.getOwnPropertyNames(FreshClass))
-        {
-            if (reserved.has(name))
-            {
+        for (const name of Object.getOwnPropertyNames(FreshClass)) {
+            if (reserved.has(name)) {
                 continue;
             }
 
-            try
-            {
+            try {
                 Object.defineProperty(liveCtor, name, Object.getOwnPropertyDescriptor(FreshClass, name));
-            }
-            catch
-            {
-
-            }
+            } catch {}
         }
     }
 
     return liveProto;
 };
 
-export const extractConstructorSource = (src) =>
-{
-    if (typeof src !== 'string' || src.length === 0)
-    {
+export const extractConstructorSource = (src) => {
+    if (typeof src !== 'string' || src.length === 0) {
         return '<<no-source>>';
     }
 
     const match = /\bconstructor\s*\(/.exec(src);
-    if (!match)
-    {
+    if (!match) {
         return '<<no-constructor>>';
     }
 
@@ -82,25 +59,20 @@ export const extractConstructorSource = (src) =>
     let lineComment = false;
     let blockComment = false;
 
-    for (let i = start; i < src.length; i++)
-    {
+    for (let i = start; i < src.length; i++) {
         const ch = src[i];
         const next = src[i + 1];
 
-        if (lineComment)
-        {
-            if (ch === '\n')
-            {
+        if (lineComment) {
+            if (ch === '\n') {
                 lineComment = false;
             }
 
             continue;
         }
 
-        if (blockComment)
-        {
-            if (ch === '*' && next === '/')
-            {
+        if (blockComment) {
+            if (ch === '*' && next === '/') {
                 blockComment = false;
                 i++;
             }
@@ -108,68 +80,49 @@ export const extractConstructorSource = (src) =>
             continue;
         }
 
-        if (stringDelim)
-        {
-            if (ch === '\\')
-            {
+        if (stringDelim) {
+            if (ch === '\\') {
                 i++;
-            }
-            else if (ch === stringDelim)
-            {
+            } else if (ch === stringDelim) {
                 stringDelim = null;
             }
 
             continue;
         }
 
-        if (ch === '/' && next === '/')
-        {
+        if (ch === '/' && next === '/') {
             lineComment = true;
             i++;
             continue;
         }
 
-        if (ch === '/' && next === '*')
-        {
+        if (ch === '/' && next === '*') {
             blockComment = true;
             i++;
             continue;
         }
 
-        if (ch === '"' || ch === '\'' || ch === '`')
-        {
+        if (ch === '"' || ch === "'" || ch === '`') {
             stringDelim = ch;
             continue;
         }
 
-        if (!inBody)
-        {
-            if (ch === '(')
-            {
+        if (!inBody) {
+            if (ch === '(') {
                 parenDepth++;
-            }
-            else if (ch === ')')
-            {
+            } else if (ch === ')') {
                 parenDepth--;
-            }
-            else if (ch === '{' && parenDepth === 0)
-            {
+            } else if (ch === '{' && parenDepth === 0) {
                 inBody = true;
                 braceDepth = 1;
             }
-        }
-        else
-        {
-            if (ch === '{')
-            {
+        } else {
+            if (ch === '{') {
                 braceDepth++;
-            }
-            else if (ch === '}')
-            {
+            } else if (ch === '}') {
                 braceDepth--;
 
-                if (braceDepth === 0)
-                {
+                if (braceDepth === 0) {
                     return src.slice(start, i + 1);
                 }
             }

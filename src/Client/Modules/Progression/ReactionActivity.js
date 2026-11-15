@@ -1,10 +1,8 @@
 'use strict';
-const bump = async (client, guildId, userId, field) =>
-{
+const bump = async (client, guildId, userId, field) => {
     const member = await client.module.database.Member(userId, guildId).catch(() => null);
 
-    if (!member)
-    {
+    if (!member) {
         return;
     }
 
@@ -14,12 +12,10 @@ const bump = async (client, guildId, userId, field) =>
     });
 };
 
-export const creditReaction = async (client, reaction, user) =>
-{
+export const creditReaction = async (client, reaction, user) => {
     const guildId = reaction.message?.guild?.id;
 
-    if (!guildId || user?.bot)
-    {
+    if (!guildId || user?.bot) {
         return;
     }
 
@@ -27,20 +23,17 @@ export const creditReaction = async (client, reaction, user) =>
 
     let message = reaction.message;
 
-    if (message.partial)
-    {
+    if (message.partial) {
         message = await message.fetch().catch(() => null);
 
-        if (!message)
-        {
+        if (!message) {
             return;
         }
     }
 
     const author = message.author;
 
-    if (!author || author.bot)
-    {
+    if (!author || author.bot) {
         return;
     }
 

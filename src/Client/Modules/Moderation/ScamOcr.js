@@ -1,9 +1,9 @@
 'use strict';
-import { spawn }      from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import os             from 'node:os';
-import sharp          from 'sharp';
-import axios          from 'axios';
+import os from 'node:os';
+import sharp from 'sharp';
+import axios from 'axios';
 
 const TESSERACT = process.env.TESSERACT_PATH || 'tesseract-ocr';
 let unavailable = false;
@@ -15,175 +15,131 @@ const DARK_MEAN = 110;
 const OCR_WIDTH = 1280;
 
 const THREAD_LIMIT = '1';
-const CORES = (() =>
-{
-    try
-    {
+const CORES = (() => {
+    try {
         return os.availableParallelism?.() ?? os.cpus().length;
-    }
-    catch
-    {
+    } catch {
         return 1;
     }
 })();
 
-const OCR_CONCURRENCY = (() =>
-{
+const OCR_CONCURRENCY = (() => {
     const configured = Number(process.env.SCAM_OCR_CONCURRENCY);
 
-    return Number.isFinite(configured) && configured >= 1
-        ? Math.floor(configured)
-        : Math.max(1, Math.min(4, CORES));
+    return Number.isFinite(configured) && configured >= 1 ? Math.floor(configured) : Math.max(1, Math.min(4, CORES));
 })();
 let active = 0;
 const waiting = [];
 
-const withSlot = async task =>
-{
-    if (active >= OCR_CONCURRENCY)
-    {
-        await new Promise(resolve => waiting.push(resolve));
-    }
-    else
-    {
+const withSlot = async (task) => {
+    if (active >= OCR_CONCURRENCY) {
+        await new Promise((resolve) => waiting.push(resolve));
+    } else {
         active++;
     }
 
-    try
-    {
+    try {
         return await task();
-    }
-    finally
-    {
+    } finally {
         const next = waiting.shift();
 
-        if (next)
-        {
+        if (next) {
             next();
-        }
-        else
-        {
+        } else {
             active--;
         }
     }
 };
 
-const preprocess = async input =>
-{
+const preprocess = async (input) => {
     const base = sharp(input, { failOn: 'none' }).grayscale();
     const stats = await base.clone().stats();
     const mean = stats.channels[0]?.mean ?? 128;
 
-    const toned = mean < DARK_MEAN
-        ? base.negate()
-        : base;
+    const toned = mean < DARK_MEAN ? base.negate() : base;
 
     return toned
         .normalize()
         .resize({
-            width:              OCR_WIDTH,
+            width: OCR_WIDTH,
             withoutEnlargement: false
         })
         .png()
         .toBuffer();
 };
 
-const recognise = (png, log) => new Promise(resolve =>
-{
-    if (unavailable)
-    {
-        return resolve('');
-    }
-
-    let child;
-
-    try
-    {
-        child = spawn(TESSERACT, [
-            '-',
-            '-',
-            '-l',
-            'eng',
-            '--psm',
-            '11'
-        ], {
-            env: {
-                ...process.env,
-                OMP_THREAD_LIMIT: THREAD_LIMIT
-            },
-
-            stdio: [
-                'pipe',
-                'pipe',
-                'ignore'
-            ]
-        });
-    }
-    catch
-    {
-        return resolve('');
-    }
-
-    let out = '';
-    let done = false;
-
-    const finish = value =>
-    {
-        if (done)
-        {
-            return;
+const recognise = (png, log) =>
+    new Promise((resolve) => {
+        if (unavailable) {
+            return resolve('');
         }
 
-        done = true;
+        let child;
 
-        clearTimeout(timer);
-        resolve(value);
-    };
+        try {
+            child = spawn(TESSERACT, ['-', '-', '-l', 'eng', '--psm', '11'], {
+                env: {
+                    ...process.env,
+                    OMP_THREAD_LIMIT: THREAD_LIMIT
+                },
 
-    const timer = setTimeout(() =>
-    {
-        child.kill('SIGKILL');
+                stdio: ['pipe', 'pipe', 'ignore']
+            });
+        } catch {
+            return resolve('');
+        }
 
-        log?.('WARN', 'ScamOcr: read timed out; killed tesseract-ocr.');
+        let out = '';
+        let done = false;
 
-        finish('');
-    }, RECOGNIZE_TIMEOUT);
-    child.stdout.setEncoding('utf8');
-
-    child.stdout.on('data', chunk =>
-    {
-        out += chunk;
-    });
-
-    child.on('error', error =>
-    {
-        if (error?.code === 'ENOENT')
-        {
-
-            const first = !unavailable;
-
-            unavailable = true;
-
-            if (first)
-            {
-                log?.('WARN', 'ScamOcr: `tesseract-ocr` not found. Image scam scanning is off; `sudo apt install tesseract-ocr` on the Pi to enable it.');
+        const finish = (value) => {
+            if (done) {
+                return;
             }
-        }
-        else
-        {
-            log?.('WARN', `ScamOcr: tesseract-ocr failed: ${error?.message ?? error}`);
-        }
 
-        finish('');
+            done = true;
+
+            clearTimeout(timer);
+            resolve(value);
+        };
+
+        const timer = setTimeout(() => {
+            child.kill('SIGKILL');
+
+            log?.('WARN', 'ScamOcr: read timed out; killed tesseract-ocr.');
+
+            finish('');
+        }, RECOGNIZE_TIMEOUT);
+        child.stdout.setEncoding('utf8');
+
+        child.stdout.on('data', (chunk) => {
+            out += chunk;
+        });
+
+        child.on('error', (error) => {
+            if (error?.code === 'ENOENT') {
+                const first = !unavailable;
+
+                unavailable = true;
+
+                if (first) {
+                    log?.(
+                        'WARN',
+                        'ScamOcr: `tesseract-ocr` not found. Image scam scanning is off; `sudo apt install tesseract-ocr` on the Pi to enable it.'
+                    );
+                }
+            } else {
+                log?.('WARN', `ScamOcr: tesseract-ocr failed: ${error?.message ?? error}`);
+            }
+
+            finish('');
+        });
+
+        child.on('close', () => finish(out));
+
+        child.stdin.on('error', () => {});
+        child.stdin.end(png);
     });
-
-    child.on('close', () => finish(out));
-
-    child.stdin.on('error', () =>
-    {
-    });
-    child.stdin.end(png);
-});
 
 const CONTENT_TTL = 30 * 60 * 1000;
 
@@ -192,49 +148,35 @@ const CONTENT_MAX = 1000;
 const contentCache = new Map();
 const inFlight = new Map();
 const urlInFlight = new Map();
-const prune = () =>
-{
+const prune = () => {
     const now = Date.now();
 
-    for (const [digest, entry] of contentCache)
-    {
-        if (now - entry.at >= (entry.scam
-            ? KNOWN_SCAM_TTL
-            : CONTENT_TTL))
-        {
+    for (const [digest, entry] of contentCache) {
+        if (now - entry.at >= (entry.scam ? KNOWN_SCAM_TTL : CONTENT_TTL)) {
             contentCache.delete(digest);
         }
     }
 
-    if (contentCache.size > CONTENT_MAX)
-    {
-        for (const [digest, entry] of contentCache)
-        {
-            if (contentCache.size <= CONTENT_MAX)
-            {
+    if (contentCache.size > CONTENT_MAX) {
+        for (const [digest, entry] of contentCache) {
+            if (contentCache.size <= CONTENT_MAX) {
                 break;
             }
 
-            if (!entry.scam)
-            {
+            if (!entry.scam) {
                 contentCache.delete(digest);
             }
         }
     }
 };
-const remembered = digest =>
-{
+const remembered = (digest) => {
     const entry = contentCache.get(digest);
 
-    if (!entry)
-    {
+    if (!entry) {
         return null;
     }
 
-    if (Date.now() - entry.at >= (entry.scam
-        ? KNOWN_SCAM_TTL
-        : CONTENT_TTL))
-    {
+    if (Date.now() - entry.at >= (entry.scam ? KNOWN_SCAM_TTL : CONTENT_TTL)) {
         contentCache.delete(digest);
 
         return null;
@@ -244,57 +186,38 @@ const remembered = digest =>
 };
 let onLearned = null;
 
-export const setScamImagePublisher = publish =>
-{
-    onLearned = typeof publish === 'function'
-        ? publish
-        : null;
+export const setScamImagePublisher = (publish) => {
+    onLearned = typeof publish === 'function' ? publish : null;
 };
-const announce = entries =>
-{
-    if (!onLearned || !entries.length)
-    {
+const announce = (entries) => {
+    if (!onLearned || !entries.length) {
         return;
     }
 
-    try
-    {
+    try {
         onLearned(entries);
-    }
-    catch
-    {
-
-    }
+    } catch {}
 };
 
-export const rememberImages = entries =>
-{
+export const rememberImages = (entries) => {
     let applied = 0;
 
-    for (const entry of entries ?? [])
-    {
+    for (const entry of entries ?? []) {
         const digest = entry?.digest;
 
-        if (typeof digest !== 'string' || !digest)
-        {
+        if (typeof digest !== 'string' || !digest) {
             continue;
         }
 
-        const at = Number.isFinite(entry.at)
-            ? entry.at
-            : Date.now();
+        const at = Number.isFinite(entry.at) ? entry.at : Date.now();
 
-        if (Date.now() - at >= (entry.scam
-            ? KNOWN_SCAM_TTL
-            : CONTENT_TTL))
-        {
+        if (Date.now() - at >= (entry.scam ? KNOWN_SCAM_TTL : CONTENT_TTL)) {
             continue;
         }
 
         const held = contentCache.get(digest);
 
-        if (!held)
-        {
+        if (!held) {
             contentCache.set(digest, {
                 text: String(entry.text ?? ''),
                 at,
@@ -305,8 +228,7 @@ export const rememberImages = entries =>
 
             continue;
         }
-        if (entry.scam === true && !held.scam)
-        {
+        if (entry.scam === true && !held.scam) {
             held.scam = true;
             held.at = at;
             applied++;
@@ -314,33 +236,26 @@ export const rememberImages = entries =>
             continue;
         }
 
-        if (at > held.at)
-        {
+        if (at > held.at) {
             held.text = String(entry.text ?? held.text);
             held.at = at;
             applied++;
         }
     }
 
-    if (applied)
-    {
+    if (applied) {
         prune();
     }
 
     return applied;
 };
 
-export const exportScamImages = (max = CONTENT_MAX) =>
-{
+export const exportScamImages = (max = CONTENT_MAX) => {
     const now = Date.now();
     const live = [];
 
-    for (const [digest, entry] of contentCache)
-    {
-        if (now - entry.at >= (entry.scam
-            ? KNOWN_SCAM_TTL
-            : CONTENT_TTL))
-        {
+    for (const [digest, entry] of contentCache) {
+        if (now - entry.at >= (entry.scam ? KNOWN_SCAM_TTL : CONTENT_TTL)) {
             continue;
         }
 
@@ -348,26 +263,21 @@ export const exportScamImages = (max = CONTENT_MAX) =>
             digest,
             text: entry.text,
             scam: entry.scam === true,
-            at:   entry.at
+            at: entry.at
         });
     }
 
-    return live
-        .sort((a, b) => Number(b.scam) - Number(a.scam) || b.at - a.at)
-        .slice(0, Math.max(0, max));
+    return live.sort((a, b) => Number(b.scam) - Number(a.scam) || b.at - a.at).slice(0, Math.max(0, max));
 };
 
-export const markScamImages = digests =>
-{
+export const markScamImages = (digests) => {
     let marked = 0;
     const learned = [];
 
-    for (const digest of digests ?? [])
-    {
+    for (const digest of digests ?? []) {
         const entry = contentCache.get(digest);
 
-        if (entry && !entry.scam)
-        {
+        if (entry && !entry.scam) {
             entry.scam = true;
             entry.at = Date.now();
             marked++;
@@ -376,7 +286,7 @@ export const markScamImages = digests =>
                 digest,
                 text: entry.text,
                 scam: true,
-                at:   entry.at
+                at: entry.at
             });
         }
     }
@@ -385,31 +295,27 @@ export const markScamImages = digests =>
 
     return marked;
 };
-export const isKnownScamImage = digest => remembered(digest)?.scam === true;
+export const isKnownScamImage = (digest) => remembered(digest)?.scam === true;
 export const ocrCacheStats = () => ({
     remembered: contentCache.size,
-    scams:      [...contentCache.values()].filter(entry => entry.scam).length,
-    inFlight:   inFlight.size
+    scams: [...contentCache.values()].filter((entry) => entry.scam).length,
+    inFlight: inFlight.size
 });
 
-const readOne = async (url, log) =>
-{
+const readOne = async (url, log) => {
     const existing = urlInFlight.get(url);
 
-    if (existing)
-    {
+    if (existing) {
         return existing;
     }
 
-    const job = (async () =>
-    {
-        try
-        {
+    const job = (async () => {
+        try {
             const response = await axios.get(url, {
-                responseType:     'arraybuffer',
-                timeout:          FETCH_TIMEOUT,
+                responseType: 'arraybuffer',
+                timeout: FETCH_TIMEOUT,
                 maxContentLength: MAX_BYTES,
-                maxBodyLength:    MAX_BYTES
+                maxBodyLength: MAX_BYTES
             });
 
             const data = Buffer.from(response.data);
@@ -417,25 +323,23 @@ const readOne = async (url, log) =>
 
             const known = remembered(digest);
 
-            if (known)
-            {
+            if (known) {
                 return {
-                    text:   known.text,
+                    text: known.text,
                     digest,
                     cached: true,
-                    scam:   known.scam === true
+                    scam: known.scam === true
                 };
             }
 
             const running = inFlight.get(digest);
 
-            if (running)
-            {
+            if (running) {
                 return {
-                    text:   await running,
+                    text: await running,
                     digest,
                     cached: true,
-                    scam:   false
+                    scam: false
                 };
             }
 
@@ -445,12 +349,9 @@ const readOne = async (url, log) =>
 
             let text = '';
 
-            try
-            {
+            try {
                 text = await work;
-            }
-            finally
-            {
+            } finally {
                 inFlight.delete(digest);
             }
 
@@ -477,22 +378,18 @@ const readOne = async (url, log) =>
                 text,
                 digest,
                 cached: false,
-                scam:   false
+                scam: false
             };
-        }
-        catch (error)
-        {
+        } catch (error) {
             log?.('WARN', `ScamOcr: could not read ${url}: ${error?.message ?? error}`);
 
             return {
-                text:   '',
+                text: '',
                 digest: null,
                 cached: false,
-                scam:   false
+                scam: false
             };
-        }
-        finally
-        {
+        } finally {
             urlInFlight.delete(url);
         }
     })();
@@ -502,21 +399,14 @@ const readOne = async (url, log) =>
     return job;
 };
 
-export const readImages = async (imageUrls, {
-    log,
-    max = 4,
-    concurrency = OCR_CONCURRENCY
-} = {}) =>
-{
-    if (!imageUrls?.length || unavailable)
-    {
+export const readImages = async (imageUrls, { log, max = 4, concurrency = OCR_CONCURRENCY } = {}) => {
+    if (!imageUrls?.length || unavailable) {
         return [];
     }
 
     const targets = imageUrls.slice(0, Math.max(0, max));
 
-    if (!targets.length)
-    {
+    if (!targets.length) {
         return [];
     }
 
@@ -524,14 +414,11 @@ export const readImages = async (imageUrls, {
     const lanes = Math.max(1, Math.min(Math.floor(concurrency) || 1, targets.length));
 
     let cursor = 0;
-    const lane = async () =>
-    {
-        for (; ;)
-        {
+    const lane = async () => {
+        for (;;) {
             const index = cursor++;
 
-            if (index >= targets.length)
-            {
+            if (index >= targets.length) {
                 return;
             }
 
@@ -543,19 +430,18 @@ export const readImages = async (imageUrls, {
 
     return targets.map((url, index) => ({
         url,
-        text:   (reads[index]?.text ?? '').trim(),
+        text: (reads[index]?.text ?? '').trim(),
         digest: reads[index]?.digest ?? null,
         cached: reads[index]?.cached === true,
-        scam:   reads[index]?.scam === true
+        scam: reads[index]?.scam === true
     }));
 };
 
-export const ocrImages = async (imageUrls, opts = {}) =>
-{
+export const ocrImages = async (imageUrls, opts = {}) => {
     const reads = await readImages(imageUrls, opts);
 
     return reads
-        .map(read => read.text)
+        .map((read) => read.text)
         .filter(Boolean)
         .join(' ')
         .replace(/\s+/g, ' ')

@@ -1,11 +1,10 @@
 'use strict';
 
 import Discord from 'discord.js';
-import Relaxy  from '../../../src/Client/Relaxy.js';
+import Relaxy from '../../../src/Client/Relaxy.js';
 
 export default {
-    async run(client, guild)
-    {
+    async run(client, guild) {
         return client.core.joinNewGuild(guild);
     }
 };

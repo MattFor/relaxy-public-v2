@@ -1,6 +1,6 @@
-import type * as Discord from "discord.js";
-import type Relaxy from "relaxy";
-import type {GuildDoc} from "./Database.js";
+import type * as Discord from 'discord.js';
+import type Relaxy from 'relaxy';
+import type { GuildDoc } from './Database.js';
 
 export type PermissionName = string;
 
@@ -8,7 +8,7 @@ export type CommandSlashBuilder =
     | Discord.SlashCommandBuilder
     | Discord.SlashCommandOptionsOnlyBuilder
     | Discord.SlashCommandSubcommandsOnlyBuilder
-    | Omit<Discord.SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;
+    | Omit<Discord.SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
 
 export interface Command {
     name: string;

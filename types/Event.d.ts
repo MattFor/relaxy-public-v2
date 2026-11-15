@@ -1,2 +1,1 @@
-import type Relaxy from "relaxy";
-
+import type Relaxy from 'relaxy';

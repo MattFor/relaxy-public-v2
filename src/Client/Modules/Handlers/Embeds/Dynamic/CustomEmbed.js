@@ -1,14 +1,11 @@
 'use strict';
 
-import fixer                    from 'dirty-json';
-import Discord                  from 'discord.js';
-import Relaxy                   from '../../../../Relaxy.js';
+import fixer from 'dirty-json';
+import Discord from 'discord.js';
+import Relaxy from '../../../../Relaxy.js';
 import { normalizeWhiteSpaces } from 'normalize-text';
 
-import {
-    validateEmbed,
-    describeViolations
-} from '../EmbedLimits.js';
+import { validateEmbed, describeViolations } from '../EmbedLimits.js';
 
 const exceptions = [
     'url',
@@ -26,10 +23,8 @@ const exceptions = [
     'description'
 ];
 
-export default class CustomEmbed
-{
-    constructor(client)
-    {
+export default class CustomEmbed {
+    constructor(client) {
         this.text = '';
         this.data = null;
         this.parts = null;
@@ -38,14 +33,11 @@ export default class CustomEmbed
         this.rawEmbedText = '';
     }
 
-    async fullRoutine(message, args, guild, options = {})
-    {
+    async fullRoutine(message, args, guild, options = {}) {
         this.rawEmbedText = args.join(' ');
 
-        const error = msg =>
-        {
-            if (!options.noError)
-            {
+        const error = (msg) => {
+            if (!options.noError) {
                 return this.client.qEmbed(msg, message);
             }
 
@@ -55,17 +47,14 @@ export default class CustomEmbed
         let timeout = false;
         let messageToEdit = null;
 
-        if (args.length === 3 && args[0].toLowerCase() === 'edit')
-        {
+        if (args.length === 3 && args[0].toLowerCase() === 'edit') {
             const channel = await this.client.utils.channel(message, args, 1);
 
-            if (!channel)
-            {
+            if (!channel) {
                 return error('Channel does not exist');
             }
 
-            if (guild.ch.t.rs.includes(channel.id) && !this.client.utils.isExempt(guild, message))
-            {
+            if (guild.ch.t.rs.includes(channel.id) && !this.client.utils.isExempt(guild, message)) {
                 return error('Cannot use Relaxy in that channel.');
             }
 
@@ -74,13 +63,11 @@ export default class CustomEmbed
                 limit: 1
             });
 
-            if (!fetchedMessage)
-            {
-                return error('Message with provided Id doesn\'t exist.');
+            if (!fetchedMessage) {
+                return error("Message with provided Id doesn't exist.");
             }
 
-            if (fetchedMessage.author.id !== this.client.user.id)
-            {
+            if (fetchedMessage.author.id !== this.client.user.id) {
                 return error('Message is not from Relaxy, cannot edit.');
             }
 
@@ -93,15 +80,16 @@ export default class CustomEmbed
                 }
             ]);
 
-            const collected = await message.channel.awaitMessages({
-                filter: m => m.author.id === message.author.id,
-                max:    1,
-                time:   300000,
-                errors: ['time']
-            }).catch(() => timeout = true);
+            const collected = await message.channel
+                .awaitMessages({
+                    filter: (m) => m.author.id === message.author.id,
+                    max: 1,
+                    time: 300000,
+                    errors: ['time']
+                })
+                .catch(() => (timeout = true));
 
-            if (timeout)
-            {
+            if (timeout) {
                 return error('Timeout, please try again!');
             }
 
@@ -109,42 +97,29 @@ export default class CustomEmbed
             args = message.content.split(' ');
         }
 
-        try
-        {
-            if (message.attachments.size > 0)
-            {
+        try {
+            if (message.attachments.size > 0) {
                 await this.createFromFile(message);
-            }
-            else
-            {
+            } else {
                 await this.createFromText(args);
             }
-        }
-        catch (e)
-        {
+        } catch (e) {
             this.data = null;
             this.rawEmbedText = '';
 
-            if (!options.ignoreEmbed)
-            {
+            if (!options.ignoreEmbed) {
                 return error('Parsing provided data failed!');
             }
         }
 
-        if ([
-            undefined,
-            null
-        ].includes(this.data) && !options.ignoreEmbed)
-        {
+        if ([undefined, null].includes(this.data) && !options.ignoreEmbed) {
             return error('The data you provided is invalid!');
         }
 
-        if (this.data && typeof this.data === 'object')
-        {
+        if (this.data && typeof this.data === 'object') {
             const verdict = validateEmbed(this.data);
 
-            if (!verdict.ok)
-            {
+            if (!verdict.ok) {
                 const report = describeViolations(verdict);
 
                 this.data = null;
@@ -154,117 +129,104 @@ export default class CustomEmbed
             }
         }
 
-        if ((!options.ignoreEmbed || !!this.data) && !options.preset)
-        {
+        if ((!options.ignoreEmbed || !!this.data) && !options.preset) {
             const _ = await this.client.send(message.channel, null, [
                 {
-                    color:       this.client.data.embedColor,
-                    description: 'Do you want text above the embed? It will not show any text if you reply with **`no`**.'
+                    color: this.client.data.embedColor,
+                    description:
+                        'Do you want text above the embed? It will not show any text if you reply with **`no`**.'
                 }
             ]);
 
-            const opDelete = async () =>
-            {
-                try
-                {
+            const opDelete = async () => {
+                try {
                     await _.delete();
-                }
-                catch
-                {
-                }
+                } catch {}
             };
 
-            setTimeout(async () =>
-            {
+            setTimeout(async () => {
                 opDelete();
             }, 30 * 1000);
 
-            const collected = await message.channel.awaitMessages({
-                filter: m => m.author.id === message.author.id,
-                max:    1,
-                time:   300000,
-                errors: ['time']
-            }).catch(() => timeout = true);
+            const collected = await message.channel
+                .awaitMessages({
+                    filter: (m) => m.author.id === message.author.id,
+                    max: 1,
+                    time: 300000,
+                    errors: ['time']
+                })
+                .catch(() => (timeout = true));
 
-            if (timeout)
-            {
+            if (timeout) {
                 opDelete();
                 return error('Timeout, please try again!');
             }
 
             const content = collected.first()?.content;
 
-            if (!content)
-            {
+            if (!content) {
                 opDelete();
                 return error('Invalid response!');
             }
 
-            if (!content.toLowerCase().split(' ')?.[0].includes('no'))
-            {
+            if (!content.toLowerCase().split(' ')?.[0].includes('no')) {
                 this.text = content;
             }
 
             opDelete();
 
-            try
-            {
+            try {
                 await collected.first().delete();
-            }
-            catch
-            {
-            }
-        }
-        else if (options.ignoreEmbed && !this.data)
-        {
+            } catch {}
+        } else if (options.ignoreEmbed && !this.data) {
             this.text = args.join(' ');
         }
 
         this.parts = await this.client.utils.generateCustomMessageParts(message, this.text, this.data);
 
-        if (!this.parts)
-        {
+        if (!this.parts) {
             return;
         }
 
-        if (!options.noChannel && !messageToEdit)
-        {
+        if (!options.noChannel && !messageToEdit) {
             await this.client.send(message.channel, null, [
                 {
-                    color:       this.client.data.embedColor,
+                    color: this.client.data.embedColor,
                     description: 'To which channel you want to sent this embed? **channel mention/name/id**'
                 }
             ]);
 
-            const awaitChannel = await message.channel.awaitMessages({
-                filter: m => m.author.id === message.author.id,
-                max:    1,
-                time:   300000,
-                errors: ['time']
-            }).catch(() => timeout = true);
+            const awaitChannel = await message.channel
+                .awaitMessages({
+                    filter: (m) => m.author.id === message.author.id,
+                    max: 1,
+                    time: 300000,
+                    errors: ['time']
+                })
+                .catch(() => (timeout = true));
 
-            if (timeout)
-            {
+            if (timeout) {
                 return error('Timeout, please try again!');
             }
 
             const awaitChannelContent = awaitChannel.first().content;
 
-            if (!awaitChannelContent)
-            {
+            if (!awaitChannelContent) {
                 return error('No text provided!');
             }
 
             const channel = await this.client.utils.channel(awaitChannel.first(), awaitChannelContent.split(' '));
 
-            if (!channel || ![
-                Discord.ChannelType.GuildText,
-                Discord.ChannelType.GuildAnnouncement,
-                Discord.ChannelType.PublicThread,
-                Discord.ChannelType.PrivateThread,
-                Discord.ChannelType.AnnouncementThread
-            ].includes(channel.type))
-            {
+            if (
+                !channel ||
+                ![
+                    Discord.ChannelType.GuildText,
+                    Discord.ChannelType.GuildAnnouncement,
+                    Discord.ChannelType.PublicThread,
+                    Discord.ChannelType.PrivateThread,
+                    Discord.ChannelType.AnnouncementThread
+                ].includes(channel.type)
+            ) {
                 return error('Invalid channel!');
             }
 
@@ -273,53 +235,43 @@ export default class CustomEmbed
             const everyOneCheck = this.parts?.[0]?.includes('@everyone') ?? null;
             const fileCheck = this.parts?.[3]?.length !== 0 ?? null;
 
-            if (!permissions.SendMessages || !permissions.EmbedLinks || (everyOneCheck
-                ? !permissions.MentionEveryone
-                : false) || (fileCheck
-                ? !permissions.AttachFiles
-                : false))
-            {
+            if (
+                !permissions.SendMessages ||
+                !permissions.EmbedLinks ||
+                (everyOneCheck ? !permissions.MentionEveryone : false) ||
+                (fileCheck ? !permissions.AttachFiles : false)
+            ) {
                 return error('You do not have the permissions required to post in that channel!');
             }
 
-            if (this.client.utils.isRestricted(guild, channel.id) && !this.client.utils.isExempt(guild, message))
-            {
-                return error('Cannot use that channel as it\'s restricted!');
+            if (this.client.utils.isRestricted(guild, channel.id) && !this.client.utils.isExempt(guild, message)) {
+                return error("Cannot use that channel as it's restricted!");
             }
 
             this.channel = channel;
         }
 
-        try
-        {
-            if (options.valuesOnly)
-            {
+        try {
+            if (options.valuesOnly) {
                 return this.parts;
             }
 
-            if (messageToEdit)
-            {
+            if (messageToEdit) {
                 this.client.qEmbed('Message successfully edited!', message);
                 return this.client.edit(messageToEdit, ...this.parts);
             }
 
-            return this.client.send(this.channel, ...this.parts).catch(e =>
-            {
+            return this.client.send(this.channel, ...this.parts).catch((e) => {
                 return error('An error occurred while sending the embed!');
             });
-        }
-        catch
-        {
+        } catch {
             return error('An error occurred while sending the embed!');
         }
     }
 
-    async createFromText(args)
-    {
-        return new Promise(async (resolve, reject) =>
-        {
-            if (!args?.[0])
-            {
+    async createFromText(args) {
+        return new Promise(async (resolve, reject) => {
+            if (!args?.[0]) {
                 this.data = undefined;
                 return resolve(this.data);
             }
@@ -327,29 +279,36 @@ export default class CustomEmbed
             this.data = args.join(' ');
             this.rawEmbedText = this.data;
 
-            if (!this.data.startsWith('{'))
-            {
+            if (!this.data.startsWith('{')) {
                 this.data = `{${this.data}`;
             }
-            if (!this.data.endsWith('}'))
-            {
+            if (!this.data.endsWith('}')) {
                 this.data += '}';
             }
 
-            this.data = this.data.replaceAll('\'', '"').replaceAll('//', '\/\/').replaceAll('\'', '"').replaceAll('\r\n', '').replaceAll('\n', '')
-                            .replaceAll('~=', '--DOWNSPACE--').replaceAll('[[', 'FLAG[').replaceAll('{{', 'FLAG{').replaceAll('((', 'FLAG(').replaceAll(']]', 'FLAG]')
-                            .replaceAll('}}', 'FLAG}').replaceAll('))', 'FLAG)');
+            this.data = this.data
+                .replaceAll("'", '"')
+                .replaceAll('//', '\/\/')
+                .replaceAll("'", '"')
+                .replaceAll('\r\n', '')
+                .replaceAll('\n', '')
+                .replaceAll('~=', '--DOWNSPACE--')
+                .replaceAll('[[', 'FLAG[')
+                .replaceAll('{{', 'FLAG{')
+                .replaceAll('((', 'FLAG(')
+                .replaceAll(']]', 'FLAG]')
+                .replaceAll('}}', 'FLAG}')
+                .replaceAll('))', 'FLAG)');
 
             const exceptionsMatches = this.data.match(/\"(.*?)\"/g);
-            if (exceptionsMatches)
-            {
-                for (let i = 0; i < exceptionsMatches.length; i++)
-                {
-                    for (let j = 0; j < 13; j++)
-                    {
-                        if (!exceptionsMatches[i].includes(exceptions[j]))
-                        {
-                            this.data = this.data.replace(exceptionsMatches[i], `${exceptionsMatches[i].replaceAll(' ', '+++').replaceAll('|', '888888').replaceAll(';;', '--TTTTewdqccrfqw--')}`);
+            if (exceptionsMatches) {
+                for (let i = 0; i < exceptionsMatches.length; i++) {
+                    for (let j = 0; j < 13; j++) {
+                        if (!exceptionsMatches[i].includes(exceptions[j])) {
+                            this.data = this.data.replace(
+                                exceptionsMatches[i],
+                                `${exceptionsMatches[i].replaceAll(' ', '+++').replaceAll('|', '888888').replaceAll(';;', '--TTTTewdqccrfqw--')}`
+                            );
                         }
                     }
                 }
@@ -359,43 +318,35 @@ export default class CustomEmbed
 
             const embedObject = await this.objectify();
 
-            if (embedObject === undefined)
-            {
+            if (embedObject === undefined) {
                 this.data = undefined;
                 return reject(this.data);
             }
 
-            if (embedObject.color)
-            {
-                embedObject.color = parseInt(embedObject.color.toLowerCase().replace('#', ''),
-                    isNaN(embedObject.color)
-                        ? 16
-                        : 10);
+            if (embedObject.color) {
+                embedObject.color = parseInt(
+                    embedObject.color.toLowerCase().replace('#', ''),
+                    isNaN(embedObject.color) ? 16 : 10
+                );
             }
 
-            if (embedObject.timestamp)
-            {
+            if (embedObject.timestamp) {
                 embedObject.timestamp = new Date();
             }
 
             this.data = embedObject;
 
-            try
-            {
+            try {
                 await this.client.parseJSON(await this.client.stringifyJSON(this.data));
 
                 const keys = Object.keys(this.data);
-                for (const key of keys)
-                {
-                    if (!exceptions.includes(key))
-                    {
+                for (const key of keys) {
+                    if (!exceptions.includes(key)) {
                         this.data = null;
                         return resolve(this.data);
                     }
                 }
-            }
-            catch
-            {
+            } catch {
                 this.data = null;
             }
 
@@ -403,23 +354,18 @@ export default class CustomEmbed
         });
     }
 
-    async createFromFile(message)
-    {
-        return new Promise(async (resolve, reject) =>
-        {
-            try
-            {
+    async createFromFile(message) {
+        return new Promise(async (resolve, reject) => {
+            try {
                 let path = `./storage/cache/users/${message.author.id}`;
-                if (!(await this.client.pathExists(path)))
-                {
+                if (!(await this.client.pathExists(path))) {
                     await this.client.mkdir(path);
                 }
 
                 const currentTime = Date.now();
                 const attachment = message.attachments.first();
 
-                if (!attachment.contentType?.includes('text'))
-                {
+                if (!attachment.contentType?.includes('text')) {
                     return resolve(this.data);
                 }
 
@@ -427,56 +373,61 @@ export default class CustomEmbed
 
                 await this.client.downloadFile(attachment.url, filePath);
 
-                const awaitEmbedFile = setInterval(async () =>
-                {
+                const awaitEmbedFile = setInterval(async () => {
                     const fileExists = await this.client.pathExists(filePath);
-                    if (fileExists)
-                    {
+                    if (fileExists) {
                         const stats = await this.client.fileStats(filePath);
-                        if (stats.size < 15)
-                        {
+                        if (stats.size < 15) {
                             return null;
                         }
 
                         clearInterval(awaitEmbedFile);
 
-                        const interval = setInterval(async () =>
-                        {
-                            if (await this.client.pathExists(filePath) && (await this.client.fileStats(filePath)).size >= 15)
-                            {
+                        const interval = setInterval(async () => {
+                            if (
+                                (await this.client.pathExists(filePath)) &&
+                                (await this.client.fileStats(filePath)).size >= 15
+                            ) {
                                 clearInterval(interval);
                                 resolve(this.data);
                             }
                         }, 1000);
 
-                        this.data = (await this.client.readFile(filePath)).toString().replaceAll('\r\n', '').replaceAll('\n', '');
+                        this.data = (await this.client.readFile(filePath))
+                            .toString()
+                            .replaceAll('\r\n', '')
+                            .replaceAll('\n', '');
                         this.rawEmbedText = this.data;
 
                         this.data = this.data
-                                        .replaceAll('\'', '"').replaceAll('//', '\/\/').replaceAll('\'', '"')
-                                        .replaceAll('~=', '--DOWNSPACE--').replaceAll('[[', 'FLAG[').replaceAll('{{', 'FLAG{').replaceAll('((', 'FLAG(').replaceAll(']]', 'FLAG]')
-                                        .replaceAll('}}', 'FLAG}').replaceAll('))', 'FLAG)');
+                            .replaceAll("'", '"')
+                            .replaceAll('//', '\/\/')
+                            .replaceAll("'", '"')
+                            .replaceAll('~=', '--DOWNSPACE--')
+                            .replaceAll('[[', 'FLAG[')
+                            .replaceAll('{{', 'FLAG{')
+                            .replaceAll('((', 'FLAG(')
+                            .replaceAll(']]', 'FLAG]')
+                            .replaceAll('}}', 'FLAG}')
+                            .replaceAll('))', 'FLAG)');
 
-                        if (!this.data.startsWith('{'))
-                        {
+                        if (!this.data.startsWith('{')) {
                             this.data = `{${this.data}`;
                         }
 
-                        if (!this.data.endsWith('}'))
-                        {
+                        if (!this.data.endsWith('}')) {
                             this.data += '}';
                         }
 
                         const exceptionsMatches = this.data.match(/"(.*?)"/g);
-                        if (exceptionsMatches)
-                        {
-                            for (let i = 0; i < exceptionsMatches.length; i++)
-                            {
-                                for (let j = 0; j < 13; j++)
-                                {
-                                    if (!exceptionsMatches[i].includes(exceptions[j]))
-                                    {
-                                        this.data = this.data.replace(exceptionsMatches[i], `${exceptionsMatches[i].replaceAll(' ', '+++').replaceAll('|', '888888').replaceAll(';;', '--TTTTewdqccrfqw--')}`);
+                        if (exceptionsMatches) {
+                            for (let i = 0; i < exceptionsMatches.length; i++) {
+                                for (let j = 0; j < 13; j++) {
+                                    if (!exceptionsMatches[i].includes(exceptions[j])) {
+                                        this.data = this.data.replace(
+                                            exceptionsMatches[i],
+                                            `${exceptionsMatches[i].replaceAll(' ', '+++').replaceAll('|', '888888').replaceAll(';;', '--TTTTewdqccrfqw--')}`
+                                        );
                                     }
                                 }
                             }
@@ -486,122 +437,124 @@ export default class CustomEmbed
 
                         const embedObject = await this.objectify();
 
-                        if (!embedObject)
-                        {
+                        if (!embedObject) {
                             this.data = undefined;
                             return this.data;
                         }
 
-                        if (embedObject.color)
-                        {
-                            embedObject.color = parseInt(embedObject.color.toLowerCase().replace('#', ''),
-                                isNaN(embedObject.color)
-                                    ? 16
-                                    : null);
+                        if (embedObject.color) {
+                            embedObject.color = parseInt(
+                                embedObject.color.toLowerCase().replace('#', ''),
+                                isNaN(embedObject.color) ? 16 : null
+                            );
                         }
 
-                        if (embedObject.timestamp)
-                        {
+                        if (embedObject.timestamp) {
                             embedObject.timestamp = new Date();
                         }
 
                         this.data = embedObject;
 
-                        try
-                        {
+                        try {
                             await this.client.parseJSON(await this.client.stringifyJSON(this.data));
 
                             const keys = Object.keys(this.data);
-                            for (const key of keys)
-                            {
-                                if (!exceptions.includes(key))
-                                {
+                            for (const key of keys) {
+                                if (!exceptions.includes(key)) {
                                     this.data = null;
                                     return this.data;
                                 }
                             }
-                        }
-                        catch (e)
-                        {
+                        } catch (e) {
                             this.data = null;
                         }
 
                         return this.data;
                     }
                 }, 1000);
-            }
-            catch (error)
-            {
+            } catch (error) {
                 throw error;
             }
         });
     }
 
-    async objectify()
-    {
+    async objectify() {
         let convertedText = normalizeWhiteSpaces(this.data)
-            .replace(/(\r\n|\n|\r)/gm, '').replace(/ /g, '').replace(/"/g, '').replace(/'/g, '')
-            .replace(/{/g, '{"').replace(/}/g, '"}').replace(/:/g, '":"').replace(/,/g, '","')
-            .replace(/:"{/g, ':{').replace(/}"}/g, '}}').replace(/}","{/g, '},{').replace(/]"}/g, ']}')
-            .replace(/:"\[/g, ':["').replace(/]",/g, '],').replace(/],/g, '"],').replace(/]}/g, '"]}')
-            .replace(/\(/g, '("').replace(/\)/g, '")').replace(/"{/g, '{').replace(/}"/g, '}').replaceAll('""', '').replaceAll(',}', '}').replaceAll('"https":"//', '"https://')
-            .replaceAll(',]', ']').replaceAll('+++', ' ').replaceAll('888888', '\'').replaceAll('--TTTTewdqccrfqw--', ':')
-            .replaceAll('--DOWNSPACE--', '\n').replaceAll('<>', ',').replaceAll('("', '(').replaceAll('")', ')')
-            .replaceAll('FLAG"', 'FLAG').replaceAll('in', '\in').replaceAll('FLAG]}', 'FLAG]').replaceAll('FLAG)}', 'FLAG)').replaceAll('FLAG}}', 'FLAG}')
-            .replaceAll('FLAG[', '[').replaceAll('FLAG]', ']').replaceAll('FLAG{', '{').replaceAll('FLAG}', '}').replaceAll('FLAG(', '(').replaceAll('FLAG)', ')').replaceAll('http":"', 'http:').replaceAll('https":"', 'https:');
+            .replace(/(\r\n|\n|\r)/gm, '')
+            .replace(/ /g, '')
+            .replace(/"/g, '')
+            .replace(/'/g, '')
+            .replace(/{/g, '{"')
+            .replace(/}/g, '"}')
+            .replace(/:/g, '":"')
+            .replace(/,/g, '","')
+            .replace(/:"{/g, ':{')
+            .replace(/}"}/g, '}}')
+            .replace(/}","{/g, '},{')
+            .replace(/]"}/g, ']}')
+            .replace(/:"\[/g, ':["')
+            .replace(/]",/g, '],')
+            .replace(/],/g, '"],')
+            .replace(/]}/g, '"]}')
+            .replace(/\(/g, '("')
+            .replace(/\)/g, '")')
+            .replace(/"{/g, '{')
+            .replace(/}"/g, '}')
+            .replaceAll('""', '')
+            .replaceAll(',}', '}')
+            .replaceAll('"https":"//', '"https://')
+            .replaceAll(',]', ']')
+            .replaceAll('+++', ' ')
+            .replaceAll('888888', "'")
+            .replaceAll('--TTTTewdqccrfqw--', ':')
+            .replaceAll('--DOWNSPACE--', '\n')
+            .replaceAll('<>', ',')
+            .replaceAll('("', '(')
+            .replaceAll('")', ')')
+            .replaceAll('FLAG"', 'FLAG')
+            .replaceAll('in', '\in')
+            .replaceAll('FLAG]}', 'FLAG]')
+            .replaceAll('FLAG)}', 'FLAG)')
+            .replaceAll('FLAG}}', 'FLAG}')
+            .replaceAll('FLAG[', '[')
+            .replaceAll('FLAG]', ']')
+            .replaceAll('FLAG{', '{')
+            .replaceAll('FLAG}', '}')
+            .replaceAll('FLAG(', '(')
+            .replaceAll('FLAG)', ')')
+            .replaceAll('http":"', 'http:')
+            .replaceAll('https":"', 'https:');
 
         const parseFail1 = convertedText.match(/[^(0-9\)|\]|\}]]\,\"/g);
-        for (let i = 0; i < parseFail1?.length; i++)
-        {
+        for (let i = 0; i < parseFail1?.length; i++) {
             convertedText = convertedText.replace(parseFail1[i], parseFail1[i].replace('],', ']",'));
         }
 
-        if (this.client.flags.logs.debug)
-        {
+        if (this.client.flags.logs.debug) {
             this.client.log(convertedText);
         }
 
-        try
-        {
+        try {
             this.data = await this.client.fixerParseJSON(convertedText);
-        }
-        catch
-        {
-        }
+        } catch {}
 
-        try
-        {
-            if (typeof this.data !== 'object')
-            {
+        try {
+            if (typeof this.data !== 'object') {
                 this.data = await this.client.fixerParseJSON(`${convertedText}}`);
             }
-        }
-        catch
-        {
-        }
+        } catch {}
 
-        try
-        {
-            if (typeof this.data !== 'object')
-            {
+        try {
+            if (typeof this.data !== 'object') {
                 this.data = await this.client.fixerParseJSON(`{${convertedText}`);
             }
-        }
-        catch
-        {
-        }
+        } catch {}
 
-        if (this.client.flags.logs.debug)
-        {
+        if (this.client.flags.logs.debug) {
             this.client.log(this.data);
-            this.client.log(typeof this.data,
-                typeof this.data !== 'object'
-                    ? this.data = undefined
-                    : this.data);
+            this.client.log(typeof this.data, typeof this.data !== 'object' ? (this.data = undefined) : this.data);
         }
 
-        return typeof this.data !== 'object'
-            ? this.data = undefined
-            : this.data;
+        return typeof this.data !== 'object' ? (this.data = undefined) : this.data;
     }
 }

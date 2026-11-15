@@ -1,51 +1,45 @@
 'use strict';
 
 import Discord from 'discord.js';
-import DIG     from 'discord-image-generation';
-import Relaxy  from '../../../src/Client/Relaxy.js';
+import DIG from 'discord-image-generation';
+import Relaxy from '../../../src/Client/Relaxy.js';
 
 export default {
-    name:        'kiss',
-    aliases:     ['kissie'],
-    usage:       '=kiss <user> [user]',
+    name: 'kiss',
+    aliases: ['kissie'],
+    usage: '=kiss <user> [user]',
     description: 'Kiss someone! Pass a second user to kiss them with the first user instead of yourself.',
 
     permissionsUser: ['SEND_MESSAGES'],
-    permissionsBot:  [
-        'SEND_MESSAGES',
-        'ATTACH_FILES'
-    ],
+    permissionsBot: ['SEND_MESSAGES', 'ATTACH_FILES'],
 
-    async run(client, message, args, guild, interaction)
-    {
+    async run(client, message, args, guild, interaction) {
         let member1 = await client.utils.member(message, args, 0);
-        let member2 = await client.utils.member(message, args, 1) ?? message.member;
+        let member2 = (await client.utils.member(message, args, 1)) ?? message.member;
 
-        if (!member1 || !member2)
-        {
+        if (!member1 || !member2) {
             return client.qEmbed('No user specified to kiss!', interaction ?? message);
         }
 
         let image1 = member1.displayAvatarURL({
-            dynamic:   true,
+            dynamic: true,
             extension: 'png'
         });
         let image2 = member2.displayAvatarURL({
-            dynamic:   true,
+            dynamic: true,
             extension: 'png'
         });
 
-        if (args.length === 2 && interaction)
-        {
+        if (args.length === 2 && interaction) {
             let interactionMember1 = await client.getMember(message.guild, args[0]);
             let interactionMember2 = await client.getMember(message.guild, args[1]);
 
             image1 = interactionMember1.displayAvatarURL({
-                dynamic:   true,
+                dynamic: true,
                 extension: 'png'
             });
             image2 = interactionMember2.displayAvatarURL({
-                dynamic:   true,
+                dynamic: true,
                 extension: 'png'
             });
         }

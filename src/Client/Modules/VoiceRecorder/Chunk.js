@@ -4,26 +4,19 @@ import opus from '@discordjs/opus';
 
 const OpusEncoder = opus.OpusEncoder;
 
-import {
-    Readable,
-    Writable
-} from 'stream';
-import {
-    getChunkTimeMs,
-    getLastStopTime,
-    secondsToBuffer,
-    syncStream
-} from './VoiceUtilities.js';
+import { Readable, Writable } from 'stream';
+import { getChunkTimeMs, getLastStopTime, secondsToBuffer, syncStream } from './VoiceUtilities.js';
 
-export default class Chunk extends Writable
-{
-    constructor(lifeTimeMs, sampleRate, numChannels, getUserSpeakingTime, options)
-    {
-        const adjustedOptions = Object.assign({
-            length:        1048576,
-            highWaterMark: 1 << 25,
-            dropInterval:  1e3
-        }, options);
+export default class Chunk extends Writable {
+    constructor(lifeTimeMs, sampleRate, numChannels, getUserSpeakingTime, options) {
+        const adjustedOptions = Object.assign(
+            {
+                length: 1048576,
+                highWaterMark: 1 << 25,
+                dropInterval: 1e3
+            },
+            options
+        );
 
         super(adjustedOptions);
 
@@ -42,118 +35,106 @@ export default class Chunk extends Writable
         this._bufArrLength = adjustedOptions.length;
         this._bufArr = [];
         this._waiting = null;
-        this.fadeOutInterval = setInterval(() =>
-        {
+        this.fadeOutInterval = setInterval(() => {
             this.fadeOutCheck(lifeTimeMs);
         }, 5000);
     }
 
-    get startTimeOfNextChunk()
-    {
+    get startTimeOfNextChunk() {
         return this._startTimeOfNextChunk;
     }
 
-    set startTimeOfNextChunk(time)
-    {
-        if (this._startTimeOfChunkBefore && time)
-        {
+    set startTimeOfNextChunk(time) {
+        if (this._startTimeOfChunkBefore && time) {
             syncStream(this._bufArr, this._startTimeOfChunkBefore, time, this.encodingOptions);
         }
 
         this._startTimeOfNextChunk = this._startTimeOfChunkBefore = time;
     }
 
-    get startTimeMs()
-    {
+    get startTimeMs() {
         return this._bufArr[0]?.startTime ?? Date.now();
     }
 
-    _write(chunk, encoding, callback)
-    {
+    _write(chunk, encoding, callback) {
         const userStartedSpeaking = this.getUserSpeakingTime();
         const userJustBeganSpeaking = userStartedSpeaking !== this._startTimeOfChunkBefore;
 
-        if (userJustBeganSpeaking)
-        {
+        if (userJustBeganSpeaking) {
             this.startTimeOfNextChunk = userStartedSpeaking;
         }
 
         const addTime = this.getStartTimeOfNextChunk();
         chunk = this.decodeChunk(chunk);
-        const startTimeOfNewChunk = userJustBeganSpeaking
-            ? addTime
-            : getLastStopTime(this._bufArr);
+        const startTimeOfNewChunk = userJustBeganSpeaking ? addTime : getLastStopTime(this._bufArr);
 
         this._bufArr.push({
             chunk,
             encoding,
             startTime: startTimeOfNewChunk,
-            stopTime:  startTimeOfNewChunk + getChunkTimeMs(chunk, this.encodingOptions.sampleRate, this.encodingOptions.numChannels, this.encodingOptions.bytesPerElement)
+            stopTime:
+                startTimeOfNewChunk +
+                getChunkTimeMs(
+                    chunk,
+                    this.encodingOptions.sampleRate,
+                    this.encodingOptions.numChannels,
+                    this.encodingOptions.bytesPerElement
+                )
         });
 
         this.checkAndDrop(callback);
         this.emit('wrote');
     }
 
-    _writev(chunks, callback)
-    {
+    _writev(chunks, callback) {
         this.emit('wrote');
     }
 
-    _destroy(error, callback)
-    {
+    _destroy(error, callback) {
         clearInterval(this.fadeOutInterval);
         super._destroy(error, callback);
     }
 
-    drop()
-    {
-        if (this._bufArr.length > this._bufArrLength)
-        {
+    drop() {
+        if (this._bufArr.length > this._bufArrLength) {
             this.emit('drop', this._bufArr.splice(0, this._bufArr.length - this._bufArrLength).length);
         }
     }
 
-    rewind(startTime, stopTime)
-    {
+    rewind(startTime, stopTime) {
         const ret = new Readable({
             highWaterMark: this._readableOptions.highWaterMark,
-            read:          () =>
-                           {
-                               for (let i = this.writeSkipAndDelay(ret, startTime); i < this._bufArr.length && this._bufArr[i].startTime < stopTime; ++i)
-                               {
-                                   const element = this._bufArr[i];
-                                   const resp = ret.push(element.chunk, element.encoding);
+            read: () => {
+                for (
+                    let i = this.writeSkipAndDelay(ret, startTime);
+                    i < this._bufArr.length && this._bufArr[i].startTime < stopTime;
+                    ++i
+                ) {
+                    const element = this._bufArr[i];
+                    const resp = ret.push(element.chunk, element.encoding);
 
-                                   if (!resp)
-                                   {
-                                       break;
-                                   }
-                               }
+                    if (!resp) {
+                        break;
+                    }
+                }
 
-                               ret.push(null);
-                           }
+                ret.push(null);
+            }
         });
 
         return ret;
     }
 
-    writeSkipAndDelay(ret, startTime)
-    {
-        for (let i = 0; i < this._bufArr.length; ++i)
-        {
+    writeSkipAndDelay(ret, startTime) {
+        for (let i = 0; i < this._bufArr.length; ++i) {
             const element = this._bufArr[i];
 
-            if (element.startTime >= startTime)
-            {
-
+            if (element.startTime >= startTime) {
                 const delayTimeSec = (element.startTime - startTime) / 1000;
 
-                if (delayTimeSec > 0)
-                {
+                if (delayTimeSec > 0) {
                     const buffers = secondsToBuffer(delayTimeSec, this.encodingOptions);
-                    for (const buffer of buffers)
-                    {
+                    for (const buffer of buffers) {
                         ret.push(buffer, this._bufArr[0].encoding);
                     }
                 }
@@ -165,43 +146,34 @@ export default class Chunk extends Writable
         return this._bufArr.length;
     }
 
-    checkAndDrop(callback)
-    {
-        if (this._bufArr.length > this._bufArrLength)
-        {
+    checkAndDrop(callback) {
+        if (this._bufArr.length > this._bufArrLength) {
             this._waiting = callback;
             this.drop();
-        }
-        else
-        {
+        } else {
             callback();
         }
     }
 
-    getStartTimeOfNextChunk()
-    {
+    getStartTimeOfNextChunk() {
         const time = this.startTimeOfNextChunk || getLastStopTime(this._bufArr) || Date.now();
         this._startTimeOfNextChunk = undefined;
         return time;
     }
 
-    decodeChunk(chunk)
-    {
+    decodeChunk(chunk) {
         return this._encoder.decode(chunk);
     }
 
-    fadeOutCheck(lifeTime)
-    {
+    fadeOutCheck(lifeTime) {
         const newDate = Date.now();
         let dropped = 0;
 
-        while (dropped < this._bufArr.length && (newDate - this._bufArr[dropped].startTime) > lifeTime)
-        {
+        while (dropped < this._bufArr.length && newDate - this._bufArr[dropped].startTime > lifeTime) {
             ++dropped;
         }
 
-        if (dropped)
-        {
+        if (dropped) {
             this._bufArr.splice(0, dropped);
             this.emit('drop', dropped);
         }

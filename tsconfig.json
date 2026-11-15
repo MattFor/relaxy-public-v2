@@ -1,9 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "ES2022"
-    ],
+    "lib": ["ES2022"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
@@ -27,27 +25,13 @@
     "skipLibCheck": true,
     "incremental": true,
     "tsBuildInfoFile": "./.tsbuildinfo",
-    "typeRoots": [
-      "./node_modules/@types",
-      "./types"
-    ],
+    "typeRoots": ["./node_modules/@types", "./types"],
     "baseUrl": ".",
     "paths": {
-      "relaxy": [
-        "./types/Relaxy.d.ts"
-      ],
-      "relaxy-manager": [
-        "./types/Manager.d.ts"
-      ]
+      "relaxy": ["./types/Relaxy.d.ts"],
+      "relaxy-manager": ["./types/Manager.d.ts"]
     }
   },
-  "include": [
-    "./types/**/*",
-    "src/**/*",
-    "bot/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["./types/**/*", "src/**/*", "bot/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

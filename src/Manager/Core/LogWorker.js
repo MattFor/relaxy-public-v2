@@ -1,10 +1,7 @@
 'use strict';
-import {
-    workerData,
-    parentPort
-}           from 'worker_threads';
-import fs   from 'fs';
-import net  from 'net';
+import { workerData, parentPort } from 'worker_threads';
+import fs from 'fs';
+import net from 'net';
 import path from 'path';
 
 const logDir = workerData.logDir;
@@ -15,53 +12,35 @@ const sockPath = path.join(logDir, 'cmd.sock');
 fs.mkdirSync(logDir, { recursive: true });
 const strippedFd = fs.openSync(strippedLog, 'w');
 const colorFd = fs.openSync(colorLog, 'w');
-parentPort.on('message', msg =>
-{
-    if (msg.type !== 'write')
-    {
+parentPort.on('message', (msg) => {
+    if (msg.type !== 'write') {
         return;
     }
-    try
-    {
-        if (msg.stripped)
-        {
+    try {
+        if (msg.stripped) {
             fs.writeSync(strippedFd, msg.stripped);
         }
-        if (msg.color)
-        {
+        if (msg.color) {
             fs.writeSync(colorFd, msg.color);
         }
-    }
-    catch
-    {
-
-    }
+    } catch {}
 });
-try
-{
+try {
     fs.unlinkSync(sockPath);
-}
-catch
-{
-
-}
-const server = net.createServer(socket =>
-{
+} catch {}
+const server = net.createServer((socket) => {
     let buf = '';
 
     socket.setEncoding('utf8');
 
-    socket.on('data', data =>
-    {
+    socket.on('data', (data) => {
         buf += data;
         const lines = buf.split('\n');
         buf = lines.pop();
 
-        for (const line of lines)
-        {
+        for (const line of lines) {
             const cmd = line.trim();
-            if (cmd)
-            {
+            if (cmd) {
                 parentPort.postMessage({
                     type: 'cmd',
                     cmd
@@ -70,14 +49,13 @@ const server = net.createServer(socket =>
         }
     });
 
-    socket.on('error', () =>
-    {
-
-    });
+    socket.on('error', () => {});
 });
 
-server.on('error', err => parentPort.postMessage({
-    type: 'err',
-    msg:  String(err)
-}));
+server.on('error', (err) =>
+    parentPort.postMessage({
+        type: 'err',
+        msg: String(err)
+    })
+);
 server.listen(sockPath);

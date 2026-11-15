@@ -3,15 +3,11 @@ export const version = 4;
 
 export const schemas = {
     server: {
-        collection:  'servers',
+        collection: 'servers',
         identifiers: ['id'],
-        openMaps:    [
-            'cmd.cp',
-            'cmd.gr',
-            'd.cs'
-        ],
-        upgrades:    [],
-        defaults:    {
+        openMaps: ['cmd.cp', 'cmd.gr', 'd.cs'],
+        upgrades: [],
+        defaults: {
             id: '',
             px: ['='],
             dm: -1,
@@ -19,182 +15,168 @@ export const schemas = {
 
             ps: 0,
 
-            as:  0,
+            as: 0,
             reg: [],
-            d:   {
-                vt:  0,
+            d: {
+                vt: 0,
                 msg: 0,
-                cg:  0,
-                ca:  0,
-                cs:  {},
+                cg: 0,
+                ca: 0,
+                cs: {},
                 mut: {
                     id: '',
-                    n:  0
+                    n: 0
                 }
             },
             cmd: {
                 dis: [],
-                cp:  {},
-                gr:  {}
+                cp: {},
+                gr: {}
             },
             mbr: {
                 ex: [],
                 el: []
             },
-            ch:  {
+            ch: {
                 t: {
                     cl: [],
                     rs: []
                 },
                 v: { pv: [] }
             },
-            cn:  {
+            cn: {
                 on: false,
                 ab: 0,
                 li: [],
                 rn: false,
                 dt: 5 * 60 * 1000,
-                c:  '',
+                c: '',
                 ex: []
             },
-            lv:  {
+            lv: {
                 on: false,
-                t:  0,
-                c:  ''
+                t: 0,
+                c: ''
             },
-            co:  {
-                on:   false,
-                c:    '',
-                cur:  0,
-                hi:   0,
+            co: {
+                on: false,
+                c: '',
+                cur: 0,
+                hi: 0,
                 last: '',
-                rst:  true,
-                pay:  0
+                rst: true,
+                pay: 0
             }
         }
     },
 
     guildConfig: {
-        collection:  'guildconfig',
+        collection: 'guildconfig',
         identifiers: ['g'],
-        openMaps:    [
-            'tk.sy',
-            'ml.ev',
-            'tr.w',
-            'tr.l',
-            'rt.1',
-            'rt.2',
-            'rt.3',
-            'rt.4'
-        ],
-        upgrades:    [
+        openMaps: ['tk.sy', 'ml.ev', 'tr.w', 'tr.l', 'rt.1', 'rt.2', 'rt.3', 'rt.4'],
+        upgrades: [
             {
+                from: 2,
+                apply: (document) => {
+                    if (typeof document?.ap?.tr === 'string') {
+                        document.ap.tr = document.ap.tr ? [document.ap.tr] : [];
+                    }
 
-                from:  2,
-                apply: document =>
-                       {
-                           if (typeof document?.ap?.tr === 'string')
-                           {
-                               document.ap.tr = document.ap.tr
-                                   ? [document.ap.tr]
-                                   : [];
-                           }
-
-                           return document;
-                       }
+                    return document;
+                }
             }
         ],
-        defaults:    {
-            g:   '',
-            an:  '',
+        defaults: {
+            g: '',
+            an: '',
             ach: {
-                c:  '',
+                c: '',
                 on: false,
-                n:  0
+                n: 0
             },
             rec: {
                 on: false,
-                n:  0
+                n: 0
             },
-            rl:  {
+            rl: {
                 a: [],
                 x: []
             },
-            wc:  {
+            wc: {
                 on: false,
-                t:  0,
-                j:  {
+                t: 0,
+                j: {
                     t: 'Welcome!',
                     b: 'Glad to see you here!',
                     m: 'Hi |U|, welcome to |G|!',
                     c: ''
                 },
-                l:  {
+                l: {
                     t: 'Goodbye!',
                     b: 'Farewell friend!',
-                    m: 'Bye bye |U|, hope you\'ve had a great time here!',
+                    m: "Bye bye |U|, hope you've had a great time here!",
                     c: ''
                 }
             },
-            dg:  {
+            dg: {
                 on: false,
-                j:  '',
-                l:  ''
+                j: '',
+                l: ''
             },
-            cb:  {
-                on:  false,
+            cb: {
+                on: false,
                 del: false,
-                b:   {
-                    c:  '',
+                b: {
+                    c: '',
                     dt: ''
                 },
-                l1:  {
-                    c:  '',
+                l1: {
+                    c: '',
                     dt: ''
                 },
-                l2:  {
-                    c:  '',
+                l2: {
+                    c: '',
                     dt: ''
                 },
-                l3:  {
-                    c:  '',
+                l3: {
+                    c: '',
                     dt: ''
                 }
             },
-            bm:  {
+            bm: {
                 on: false,
                 dt: ''
             },
-            hb:  {
+            hb: {
                 on: false,
                 cs: []
             },
-            fo:  {
+            fo: {
                 on: false,
                 cs: []
             },
-            tk:  {
+            tk: {
                 on: false,
                 sy: {}
             },
 
             ap: {
-                on:  false,
-                p:   '',
-                c:   '',
-                h:   [],
-                tr:  [],
-                rq:  '',
+                on: false,
+                p: '',
+                c: '',
+                h: [],
+                tr: [],
+                rq: '',
                 rqu: '',
                 rqt: 0
             },
 
             sr: {
-                on:  false,
-                gs:  [],
-                r:   [],
-                ma:  false,
-                rq:  '',
+                on: false,
+                gs: [],
+                r: [],
+                ma: false,
+                rq: '',
                 rqu: '',
                 rqt: 0
             },
@@ -239,113 +221,102 @@ export const schemas = {
     },
 
     member: {
-        collection:  'members',
-        identifiers: [
-            'id',
-            'g'
-        ],
+        collection: 'members',
+        identifiers: ['id', 'g'],
 
         openMaps: ['ap'],
         upgrades: [
             {
+                from: 3,
+                apply: (document) => {
+                    if (typeof document.ap === 'string') {
+                        document.ap = {};
+                    }
 
-                from:  3,
-                apply: document =>
-                       {
-                           if (typeof document.ap === 'string')
-                           {
-                               document.ap = {};
-                           }
-
-                           return document;
-                       }
+                    return document;
+                }
             },
             {
+                from: 1,
+                apply: (document) => {
+                    delete document.dm;
 
-                from:  1,
-                apply: document =>
-                       {
-                           delete document.dm;
-
-                           return document;
-                       }
+                    return document;
+                }
             }
         ],
         defaults: {
-            id:  '',
-            g:   '',
-            rc:  '',
-            m:   0,
+            id: '',
+            g: '',
+            rc: '',
+            m: 0,
             inv: [],
-            xp:  0,
+            xp: 0,
             msg: 0,
             cmd: 0,
             lvl: 0,
-            lc:  '',
-            co:  0,
-            vc:  0,
-            rx:  0,
-            rr:  0,
-            nh:  [],
-            lm:  0,
-            ap:  {}
+            lc: '',
+            co: 0,
+            vc: 0,
+            rx: 0,
+            rr: 0,
+            nh: [],
+            lm: 0,
+            ap: {}
         }
     },
 
     profile: {
-        collection:  'profiles',
+        collection: 'profiles',
         identifiers: ['id'],
-        openMaps:    [],
-        upgrades:    [],
-        defaults:    {
-            id:  '',
-            m:   0,
-            ra:  0,
-            la:  '',
-            rc:  '',
+        openMaps: [],
+        upgrades: [],
+        defaults: {
+            id: '',
+            m: 0,
+            ra: 0,
+            la: '',
+            rc: '',
             ach: {
-                playedtrack:    false,
+                playedtrack: false,
                 playedplaylist: false,
-                setwelcome:     false,
-                saved:          false,
-                fetched:        false,
-                madepoll:       false,
-                got_heart:      false,
+                setwelcome: false,
+                saved: false,
+                fetched: false,
+                madepoll: false,
+                got_heart: false,
                 madeheartboard: false,
-                lockeddown:     false,
-                image:          false,
-                lvldup:         false
+                lockeddown: false,
+                image: false,
+                lvldup: false
             },
             inv: [],
-            xp:  0,
+            xp: 0,
             msg: 0,
             cmd: 0,
             rep: [],
             lvl: 0,
-            to:  false,
-            lo:  false,
-            dm:  true,
-            rm:  [],
-            lp:  {
-                t:  '',
-                g:  '',
+            to: false,
+            lo: false,
+            dm: true,
+            rm: [],
+            lp: {
+                t: '',
+                g: '',
                 at: 0
             },
-            lm:  0,
-            dc:  0,
-            ds:  0
+            lm: 0,
+            dc: 0,
+            ds: 0
         }
     },
 
     warning: {
-        collection:  'warnings',
-        identifiers: [
-            'g',
-            'u'
-        ],
-        openMaps:    [],
-        upgrades:    [],
-        defaults:    {
+        collection: 'warnings',
+        identifiers: ['g', 'u'],
+        openMaps: [],
+        upgrades: [],
+        defaults: {
             g: '',
             u: '',
             w: []
@@ -353,49 +324,43 @@ export const schemas = {
     },
 
     mute: {
-        collection:  'mutes',
-        identifiers: [
-            'g',
-            'u'
-        ],
-        openMaps:    [],
-        upgrades:    [],
-        defaults:    {
-            g:  '',
-            u:  '',
+        collection: 'mutes',
+        identifiers: ['g', 'u'],
+        openMaps: [],
+        upgrades: [],
+        defaults: {
+            g: '',
+            u: '',
             md: -1,
             ex: 0,
             rl: [],
             rs: -1,
             du: 0,
-            c:  -1,
+            c: -1,
             at: 0,
             bn: false
         }
     },
 
     reactionRole: {
-        collection:  'reactionroles',
+        collection: 'reactionroles',
         identifiers: ['g'],
-        openMaps:    [],
-        upgrades:    [],
-        defaults:    {
+        openMaps: [],
+        upgrades: [],
+        defaults: {
             g: '',
             e: []
         }
     },
 
     forumChannel: {
-        collection:  'forumchannels',
-        identifiers: [
-            'id',
-            'g'
-        ],
-        openMaps:    [],
-        upgrades:    [],
-        defaults:    {
+        collection: 'forumchannels',
+        identifiers: ['id', 'g'],
+        openMaps: [],
+        upgrades: [],
+        defaults: {
             id: '',
-            g:  '',
+            g: '',
             em: '',
             rl: [],
             tg: {
@@ -429,32 +394,23 @@ export const schemas = {
                 to: 0,
                 sn: {
                     on: false,
-                    c:  ''
+                    c: ''
                 }
             }
         }
     },
 
     heartBoard: {
-        collection:  'heartboards',
-        identifiers: [
-            'id',
-            'g'
-        ],
-        openMaps:    [],
-        upgrades:    [],
-        defaults:    {
+        collection: 'heartboards',
+        identifiers: ['id', 'g'],
+        openMaps: [],
+        upgrades: [],
+        defaults: {
             id: '',
-            g:  '',
+            g: '',
             rq: 3,
             co: 16738740,
-            em: [
-                '❤️',
-                '💓',
-                '💖',
-                '💞',
-                '💗'
-            ],
+            em: ['❤️', '💓', '💖', '💞', '💗'],
             nm: 1,
             pc: '',
             pm: ''
@@ -462,55 +418,44 @@ export const schemas = {
     },
 
     heartBoardPost: {
-        collection:  'heartboardposts',
+        collection: 'heartboardposts',
         identifiers: ['oid'],
-        openMaps:    [],
-        upgrades:    [],
-        defaults:    {
+        openMaps: [],
+        upgrades: [],
+        defaults: {
             oid: '',
             eid: '',
-            g:   '',
-            oc:  '',
-            or:  [],
-            er:  [],
-            n:   0
+            g: '',
+            oc: '',
+            or: [],
+            er: [],
+            n: 0
         }
     },
 
     ticketSystem: {
-        collection:  'ticketsystems',
-        identifiers: [
-            'g',
-            'c',
-            'mid'
-        ],
-        openMaps:    [
-            'fm',
-            'bt',
-            'en'
-        ],
-        upgrades:    [],
-        defaults:    {
+        collection: 'ticketsystems',
+        identifiers: ['g', 'c', 'mid'],
+        openMaps: ['fm', 'bt', 'en'],
+        upgrades: [],
+        defaults: {
             mid: '',
-            g:   '',
-            c:   '',
-            ds:  '',
-            fm:  {},
-            bt:  {},
-            en:  {}
+            g: '',
+            c: '',
+            ds: '',
+            fm: {},
+            bt: {},
+            en: {}
         }
     },
 
     reminder: {
-        collection:  'reminders',
-        identifiers: [
-            'u',
-            'sa'
-        ],
-        openMaps:    [],
-        upgrades:    [],
-        defaults:    {
-            u:  '',
+        collection: 'reminders',
+        identifiers: ['u', 'sa'],
+        openMaps: [],
+        upgrades: [],
+        defaults: {
+            u: '',
             nt: '',
             sa: 0,
             ea: 0,
@@ -519,18 +464,15 @@ export const schemas = {
     },
 
     case: {
-        collection:  'cases',
-        identifiers: [
-            'g',
-            'n'
-        ],
-        openMaps:    [],
-        upgrades:    [],
-        defaults:    {
-            g:  '',
-            n:  0,
+        collection: 'cases',
+        identifiers: ['g', 'n'],
+        openMaps: [],
+        upgrades: [],
+        defaults: {
+            g: '',
+            n: 0,
             ty: '',
-            u:  '',
+            u: '',
             md: '',
             rs: '',
             ex: '',
@@ -540,190 +482,187 @@ export const schemas = {
     },
 
     stat: {
-        collection:  'stats',
-        identifiers: [
-            'g',
-            'd'
-        ],
-        openMaps:    [],
-        upgrades:    [],
-        defaults:    {
-            g:  '',
-            d:  0,
-            m:  0,
-            c:  0,
+        collection: 'stats',
+        identifiers: ['g', 'd'],
+        openMaps: [],
+        upgrades: [],
+        defaults: {
+            g: '',
+            d: 0,
+            m: 0,
+            c: 0,
             vc: 0,
-            j:  0,
-            l:  0
+            j: 0,
+            l: 0
         }
     }
 };
 export const indexes = {
-    servers:         [
+    servers: [
         {
-            key:     { id: 1 },
+            key: { id: 1 },
             options: { unique: true }
         }
     ],
-    guildconfig:     [
+    guildconfig: [
         {
-            key:     { g: 1 },
+            key: { g: 1 },
             options: { unique: true }
         }
     ],
-    warnings:        [
+    warnings: [
         {
-            key:     {
+            key: {
                 g: 1,
                 u: 1
             },
             options: { unique: true }
         },
         {
-            key:     { g: 1 },
+            key: { g: 1 },
             options: {}
         }
     ],
-    mutes:           [
+    mutes: [
         {
-            key:     {
+            key: {
                 g: 1,
                 u: 1
             },
             options: { unique: true }
         },
         {
-            key:     { ex: 1 },
+            key: { ex: 1 },
             options: {}
         }
     ],
-    members:         [
+    members: [
         {
-            key:     {
-                g:  1,
+            key: {
+                g: 1,
                 id: 1
             },
             options: { unique: true }
         },
         {
-            key:     {
-                g:  1,
+            key: {
+                g: 1,
                 xp: -1
             },
             options: {}
         },
         {
-            key:     {
-                g:   1,
+            key: {
+                g: 1,
                 msg: -1
             },
             options: {}
         },
         {
-            key:     {
-                g:  1,
+            key: {
+                g: 1,
                 vc: -1
             },
             options: {}
         },
         {
-            key:     {
-                g:  1,
+            key: {
+                g: 1,
                 rx: -1
             },
             options: {}
         },
 
         {
-            key:     { lm: 1 },
+            key: { lm: 1 },
             options: {}
         },
 
         {
-            key:     { id: 1 },
+            key: { id: 1 },
             options: {}
         },
 
         {
-            key:     {
-                g:      1,
+            key: {
+                g: 1,
                 'nh.n': 1
             },
             options: {}
         }
     ],
-    profiles:        [
+    profiles: [
         {
-            key:     { id: 1 },
+            key: { id: 1 },
             options: { unique: true }
         },
         {
-            key:     { lm: 1 },
+            key: { lm: 1 },
             options: {}
         }
     ],
     heartboardposts: [
         {
-            key:     { oid: 1 },
+            key: { oid: 1 },
             options: {}
         },
         {
-            key:     { eid: 1 },
+            key: { eid: 1 },
             options: {}
         },
         {
-            key:     { g: 1 },
+            key: { g: 1 },
             options: {}
         }
     ],
-    forumchannels:   [
+    forumchannels: [
         {
-            key:     {
-                g:  1,
+            key: {
+                g: 1,
                 id: 1
             },
             options: {}
         }
     ],
-    heartboards:     [
+    heartboards: [
         {
-            key:     {
-                g:  1,
+            key: {
+                g: 1,
                 id: 1
             },
             options: {}
         }
     ],
-    ticketsystems:   [
+    ticketsystems: [
         {
-            key:     {
-                g:   1,
-                c:   1,
+            key: {
+                g: 1,
+                c: 1,
                 mid: 1
             },
             options: {}
         }
     ],
-    reminders:       [
+    reminders: [
         {
-            key:     { u: 1 },
+            key: { u: 1 },
             options: {}
         },
         {
-            key:     { ea: 1 },
+            key: { ea: 1 },
             options: {}
         }
     ],
-    reactionroles:   [
+    reactionroles: [
         {
-            key:     { g: 1 },
+            key: { g: 1 },
             options: { unique: true }
         }
     ],
 
     stats: [
         {
-            key:     {
+            key: {
                 g: 1,
                 d: -1
             },
@@ -732,14 +671,14 @@ export const indexes = {
     ],
     cases: [
         {
-            key:     {
+            key: {
                 g: 1,
                 n: 1
             },
             options: { unique: true }
         },
         {
-            key:     {
+            key: {
                 g: 1,
                 u: 1
             },
@@ -747,33 +686,33 @@ export const indexes = {
         },
 
         {
-            key:     {
-                g:  1,
+            key: {
+                g: 1,
                 md: 1
             },
             options: {}
         },
         {
-            key:     { g: 1 },
+            key: { g: 1 },
             options: {}
         }
     ]
 };
 export const modelToSchema = {
-    Server:         'server',
-    GuildConfig:    'guildConfig',
-    Member:         'member',
-    Profile:        'profile',
-    Warning:        'warning',
-    Mute:           'mute',
-    ForumChannel:   'forumChannel',
-    HeartBoard:     'heartBoard',
+    Server: 'server',
+    GuildConfig: 'guildConfig',
+    Member: 'member',
+    Profile: 'profile',
+    Warning: 'warning',
+    Mute: 'mute',
+    ForumChannel: 'forumChannel',
+    HeartBoard: 'heartBoard',
     HeartBoardPost: 'heartBoardPost',
-    TicketSystem:   'ticketSystem',
-    ReactionRole:   'reactionRole',
-    Reminder:       'reminder',
-    Case:           'case',
-    Stat:           'stat'
+    TicketSystem: 'ticketSystem',
+    ReactionRole: 'reactionRole',
+    Reminder: 'reminder',
+    Case: 'case',
+    Stat: 'stat'
 };
 
 export default {

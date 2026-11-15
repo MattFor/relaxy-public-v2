@@ -1,28 +1,21 @@
 'use strict';
-import fs   from 'fs';
+import fs from 'fs';
 import path from 'path';
 
-import {
-    PROJECT_DIR,
-    optional,
-    optionalPath
-} from '../Config/Env.js';
+import { PROJECT_DIR, optional, optionalPath } from '../Config/Env.js';
 
 const DOWNLOAD_CONCURRENCY = 4;
 const DOWNLOAD_ATTEMPTS = 3;
 const DOWNLOAD_TIMEOUT_MS = 30 * 1000;
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const mapLimit = async (items, limit, task) =>
-{
+const mapLimit = async (items, limit, task) => {
     const results = new Array(items.length);
     let cursor = 0;
 
-    const worker = async () =>
-    {
-        while (cursor < items.length)
-        {
+    const worker = async () => {
+        while (cursor < items.length) {
             const index = cursor++;
             results[index] = await task(items[index]);
         }
@@ -33,39 +26,30 @@ const mapLimit = async (items, limit, task) =>
     return results;
 };
 
-const fetchWithRetry = async url =>
-{
+const fetchWithRetry = async (url) => {
     let lastError;
 
-    for (let attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt++)
-    {
-        try
-        {
+    for (let attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt++) {
+        try {
             const response = await fetch(url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
 
-            if (response.status >= 400 && response.status < 500)
-            {
+            if (response.status >= 400 && response.status < 500) {
                 throw Object.assign(new Error(`${url} -> HTTP ${response.status}`), { permanent: true });
             }
 
-            if (!response.ok)
-            {
+            if (!response.ok) {
                 throw new Error(`${url} -> HTTP ${response.status}`);
             }
 
             return response;
-        }
-        catch (e)
-        {
-            if (e.permanent)
-            {
+        } catch (e) {
+            if (e.permanent) {
                 throw e;
             }
 
             lastError = e;
 
-            if (attempt < DOWNLOAD_ATTEMPTS)
-            {
+            if (attempt < DOWNLOAD_ATTEMPTS) {
                 await sleep(250 * 2 ** (attempt - 1));
             }
         }
@@ -81,25 +65,21 @@ export const CDN_PREFIX = 'relaxy/bot';
 export const CACHE_DIR = path.join(PROJECT_DIR, 'storage', 'cdn-cache');
 const FILE_CACHE_DIR = path.join(CACHE_DIR, 'files');
 
-const norm = assetPath => String(assetPath).replace(/^\/+/, '');
+const norm = (assetPath) => String(assetPath).replace(/^\/+/, '');
 
-const localPathOf = rel => path.join(CDN_LOCAL_ROOT, ...CDN_PREFIX.split('/'), rel);
-const filePathOf = rel => path.join(FILE_CACHE_DIR, rel);
+const localPathOf = (rel) => path.join(CDN_LOCAL_ROOT, ...CDN_PREFIX.split('/'), rel);
+const filePathOf = (rel) => path.join(FILE_CACHE_DIR, rel);
 const resolvedFiles = new Map();
 
-export const cdnFile = assetPath =>
-{
+export const cdnFile = (assetPath) => {
     const rel = norm(assetPath);
 
-    if (resolvedFiles.has(rel))
-    {
+    if (resolvedFiles.has(rel)) {
         return resolvedFiles.get(rel);
     }
 
     const local = localPathOf(rel);
-    const resolved = fs.existsSync(local)
-        ? local
-        : filePathOf(rel);
+    const resolved = fs.existsSync(local) ? local : filePathOf(rel);
 
     resolvedFiles.set(rel, resolved);
 
@@ -107,14 +87,12 @@ export const cdnFile = assetPath =>
 };
 const inflight = new Map();
 
-export const ensureFile = async assetPath =>
-{
+export const ensureFile = async (assetPath) => {
     const rel = norm(assetPath);
 
     const local = localPathOf(rel);
 
-    if (fs.existsSync(local))
-    {
+    if (fs.existsSync(local)) {
         resolvedFiles.set(rel, local);
 
         return local;
@@ -122,20 +100,17 @@ export const ensureFile = async assetPath =>
 
     const cached = filePathOf(rel);
 
-    if (fs.existsSync(cached))
-    {
+    if (fs.existsSync(cached)) {
         resolvedFiles.set(rel, cached);
 
         return cached;
     }
 
-    if (inflight.has(rel))
-    {
+    if (inflight.has(rel)) {
         return inflight.get(rel);
     }
 
-    const download = (async () =>
-    {
+    const download = (async () => {
         const response = await fetchWithRetry(assetUrl(rel));
         const body = Buffer.from(await response.arrayBuffer());
 
@@ -169,17 +144,7 @@ export const FILE_ASSETS = Object.freeze([
     'overlays/sakify.png',
     'overlays/sus.png',
 
-    ...[
-        '1',
-        '2',
-        '3',
-        '4',
-        '5',
-        '6',
-        'pinki',
-        'relaxy',
-        'snips'
-    ].map(n => `shop/${n}.png`),
+    ...['1', '2', '3', '4', '5', '6', 'pinki', 'relaxy', 'snips'].map((n) => `shop/${n}.png`),
 
     ...Array.from({ length: 12 }, (_, i) => `reactions/hug/hug${i + 1}.gif`),
     'reactions/pat/pat.gif',
@@ -188,170 +153,140 @@ export const FILE_ASSETS = Object.freeze([
     'commands/help/embed.png'
 ]);
 
-export const cdnDir = assetDir =>
-{
+export const cdnDir = (assetDir) => {
     const rel = norm(assetDir);
     const local = localPathOf(rel);
 
-    return fs.existsSync(local)
-        ? local
-        : filePathOf(rel);
+    return fs.existsSync(local) ? local : filePathOf(rel);
 };
 
-export const warmFileCache = async (onError = () =>
-{
-}, onInfo = () =>
-{
-}) =>
-{
-    const missing = FILE_ASSETS.filter(asset => !fs.existsSync(localPathOf(asset)) && !fs.existsSync(filePathOf(asset)));
+export const warmFileCache = async (onError = () => {}, onInfo = () => {}) => {
+    const missing = FILE_ASSETS.filter(
+        (asset) => !fs.existsSync(localPathOf(asset)) && !fs.existsSync(filePathOf(asset))
+    );
 
-    if (missing.length)
-    {
-        onInfo(`${missing.length}/${FILE_ASSETS.length} CDN assets are not under CDN_LOCAL_ROOT (${CDN_LOCAL_ROOT}) ` + `nor cached - downloading them. Set CDN_LOCAL_ROOT to the CDN's directory to skip this.`);
+    if (missing.length) {
+        onInfo(
+            `${missing.length}/${FILE_ASSETS.length} CDN assets are not under CDN_LOCAL_ROOT (${CDN_LOCAL_ROOT}) ` +
+                `nor cached - downloading them. Set CDN_LOCAL_ROOT to the CDN's directory to skip this.`
+        );
     }
 
-    await mapLimit(FILE_ASSETS, DOWNLOAD_CONCURRENCY, asset => ensureFile(asset).catch(e => onError(asset, e)));
+    await mapLimit(FILE_ASSETS, DOWNLOAD_CONCURRENCY, (asset) => ensureFile(asset).catch((e) => onError(asset, e)));
 };
 
-export const cdnUrl = assetPath => `${CDN_BASE}/${norm(assetPath)}`;
+export const cdnUrl = (assetPath) => `${CDN_BASE}/${norm(assetPath)}`;
 
-export const assetUrl = assetPath => cdnUrl(`${CDN_PREFIX}/${norm(assetPath)}`);
+export const assetUrl = (assetPath) => cdnUrl(`${CDN_PREFIX}/${norm(assetPath)}`);
 
 const BRAND = assetUrl('common/relaxy.png');
 
 export const CDN = Object.freeze({
     base: CDN_BASE,
-    url:  assetUrl,
+    url: assetUrl,
 
     localRoot: CDN_LOCAL_ROOT,
-    file:      cdnFile,
+    file: cdnFile,
 
     fonts: Object.freeze({
         impact: cdnFile('fonts/impact.ttf'),
-        geist:  cdnFile('fonts/geist.ttf')
+        geist: cdnFile('fonts/geist.ttf')
     }),
 
     sounds: Object.freeze({
         recordStart: cdnFile('sounds/startrecord.mp3'),
-        recordStop:  cdnFile('sounds/stoprecord.mp3')
+        recordStop: cdnFile('sounds/stoprecord.mp3')
     }),
 
     overlays: Object.freeze({
-        drip:   cdnFile('overlays/drip.png'),
-        goos:   cdnFile('overlays/goos.png'),
-        kill:   cdnFile('overlays/kill.png'),
-        myman:  cdnFile('overlays/myman.png'),
+        drip: cdnFile('overlays/drip.png'),
+        goos: cdnFile('overlays/goos.png'),
+        kill: cdnFile('overlays/kill.png'),
+        myman: cdnFile('overlays/myman.png'),
         sakify: cdnFile('overlays/sakify.png'),
-        sus:    cdnFile('overlays/sus.png')
+        sus: cdnFile('overlays/sus.png')
     }),
 
-    background: name => cdnFile(`shop/${name}.png`),
+    background: (name) => cdnFile(`shop/${name}.png`),
 
-    reactionDir: kind => cdnDir(`reactions/${kind}`),
-    reaction:    (kind, file) => cdnFile(`reactions/${kind}/${file}`),
+    reactionDir: (kind) => cdnDir(`reactions/${kind}`),
+    reaction: (kind, file) => cdnFile(`reactions/${kind}/${file}`),
 
-    helpImage: command => cdnFile(`commands/help/${command}.png`),
+    helpImage: (command) => cdnFile(`commands/help/${command}.png`),
 
     brand: BRAND,
 
-    loading:       assetUrl('common/loading.gif'),
-    serverIcon:    assetUrl('common/server.png'),
-    poll:          assetUrl('common/poll.png'),
+    loading: assetUrl('common/loading.gif'),
+    serverIcon: assetUrl('common/server.png'),
+    poll: assetUrl('common/poll.png'),
     defaultAvatar: assetUrl('common/default-avatar.png'),
 
-    musicIcon:        assetUrl('music/notes.gif'),
+    musicIcon: assetUrl('music/notes.gif'),
     musicPlaceholder: assetUrl('music/mp3.gif'),
 
     profile: Object.freeze({
-        achievement:     assetUrl('profile/achievement.png'),
-        mail:            assetUrl('profile/mail.png'),
+        achievement: assetUrl('profile/achievement.png'),
+        mail: assetUrl('profile/mail.png'),
         paymentComplete: assetUrl('profile/payment_complete.png'),
-        shop:            assetUrl('profile/shop.png')
+        shop: assetUrl('profile/shop.png')
     }),
 
     spinner: BRAND,
-    person:  BRAND,
-    thanks:  BRAND,
-    snake:   BRAND
+    person: BRAND,
+    thanks: BRAND,
+    snake: BRAND
 });
 
 const TEXT_DIR = 'text';
-export const CACHED_TEXT = Object.freeze([
-    '8b.txt',
-    'help_manager.txt',
-    'help_special_exceptions.txt',
-    'scams.txt'
-]);
-export const FRESH_TEXT = Object.freeze([
-    'credits.txt',
-    'devlog.txt',
-    'server_join.txt'
-]);
+export const CACHED_TEXT = Object.freeze(['8b.txt', 'help_manager.txt', 'help_special_exceptions.txt', 'scams.txt']);
+export const FRESH_TEXT = Object.freeze(['credits.txt', 'devlog.txt', 'server_join.txt']);
 const memo = new Map();
 
-const cachePathOf = name => path.join(CACHE_DIR, name);
+const cachePathOf = (name) => path.join(CACHE_DIR, name);
 export const TEXT_REFRESH_INTERVAL = 60 * 60 * 1000;
 
-const fetchText = async name => (await fetchWithRetry(assetUrl(`${TEXT_DIR}/${name}`))).text();
+const fetchText = async (name) => (await fetchWithRetry(assetUrl(`${TEXT_DIR}/${name}`))).text();
 
-const writeCache = async (name, body) =>
-{
+const writeCache = async (name, body) => {
     await fs.promises.mkdir(CACHE_DIR, { recursive: true });
     await fs.promises.writeFile(cachePathOf(name), body, 'utf8');
 };
 
-const readCache = async name =>
-{
-    try
-    {
+const readCache = async (name) => {
+    try {
         return await fs.promises.readFile(cachePathOf(name), 'utf8');
-    }
-    catch
-    {
+    } catch {
         return null;
     }
 };
 
-export const cdnText = async (name, onError = () =>
-{
-}) =>
-{
+export const cdnText = async (name, onError = () => {}) => {
     const fresh = FRESH_TEXT.includes(name);
 
-    if (!fresh && memo.has(name))
-    {
+    if (!fresh && memo.has(name)) {
         return memo.get(name);
     }
 
-    try
-    {
+    try {
         const body = await fetchText(name);
 
-        await writeCache(name, body).catch(() =>
-        {
-        });
+        await writeCache(name, body).catch(() => {});
 
-        if (!fresh)
-        {
+        if (!fresh) {
             memo.set(name, body);
         }
 
         return body;
-    }
-    catch (e)
-    {
+    } catch (e) {
         onError(e);
 
         const cached = await readCache(name);
 
-        if (cached === null)
-        {
+        if (cached === null) {
             return '';
         }
 
-        if (!fresh)
-        {
+        if (!fresh) {
             memo.set(name, cached);
         }
 
@@ -359,40 +294,27 @@ export const cdnText = async (name, onError = () =>
     }
 };
 
-export const warmTextCache = async (onError = () =>
-{
-}) =>
-{
-    await Promise.all(CACHED_TEXT.map(name => cdnText(name, e => onError(name, e))));
+export const warmTextCache = async (onError = () => {}) => {
+    await Promise.all(CACHED_TEXT.map((name) => cdnText(name, (e) => onError(name, e))));
 };
 
-export const refreshTextCache = async (onError = () =>
-{
-}) =>
-{
-    await Promise.all(CACHED_TEXT.map(async name =>
-    {
-        try
-        {
-            const body = await fetchText(name);
+export const refreshTextCache = async (onError = () => {}) => {
+    await Promise.all(
+        CACHED_TEXT.map(async (name) => {
+            try {
+                const body = await fetchText(name);
 
-            await writeCache(name, body).catch(() =>
-            {
-            });
+                await writeCache(name, body).catch(() => {});
 
-            memo.set(name, body);
-        }
-        catch (e)
-        {
-            onError(name, e);
-        }
-    }));
+                memo.set(name, body);
+            } catch (e) {
+                onError(name, e);
+            }
+        })
+    );
 };
 
-export const startTextRefresh = (onError = () =>
-{
-}, interval = TEXT_REFRESH_INTERVAL) =>
-{
+export const startTextRefresh = (onError = () => {}, interval = TEXT_REFRESH_INTERVAL) => {
     const timer = setInterval(() => void refreshTextCache(onError), interval);
 
     timer.unref?.();

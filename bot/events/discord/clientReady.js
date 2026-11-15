@@ -2,13 +2,12 @@
 
 import Relaxy from '../../../src/Client/Relaxy.js';
 
-import { startLoadMonitor }   from '../../../src/Client/Modules/Core/LoadMonitor.js';
+import { startLoadMonitor } from '../../../src/Client/Modules/Core/LoadMonitor.js';
 import { startVoiceActivity } from '../../../src/Client/Modules/Progression/VoiceActivity.js';
-import { startDailyStats }    from '../../../src/Client/Modules/Progression/DailyStats.js';
+import { startDailyStats } from '../../../src/Client/Modules/Progression/DailyStats.js';
 
 export default {
-    async run(client)
-    {
+    async run(client) {
         client.log('DATA', `Ready event triggered. ${client.imports.time(Date.now() - client.createdAt)}`);
 
         startLoadMonitor();
@@ -17,21 +16,17 @@ export default {
 
         startDailyStats(client);
 
-        if (typeof client.cluster?.triggerReady === 'function' && !client.cluster.ready)
-        {
+        if (typeof client.cluster?.triggerReady === 'function' && !client.cluster.ready) {
             client.cluster.triggerReady();
         }
 
         let timeout = 0;
 
-        const readyInterval = setInterval(() =>
-        {
-            if (client.data.ready || timeout >= 20)
-            {
+        const readyInterval = setInterval(() => {
+            if (client.data.ready || timeout >= 20) {
                 clearInterval(readyInterval);
 
-                if (client._pendingStatus)
-                {
+                if (client._pendingStatus) {
                     client.setStatus(client._pendingStatus.status, client._pendingStatus.reclustering, true);
                     client._pendingStatus = null;
                 }
@@ -39,8 +34,7 @@ export default {
                 return client.core.Status();
             }
 
-            if (timeout % 1000 === 0)
-            {
+            if (timeout % 1000 === 0) {
                 client.log('DATA', `Status timeout: ${timeout}`);
             }
 
@@ -59,23 +53,20 @@ export default {
 
         client.clearServerCache();
 
-        for (const discordGuild of client.guilds.cache.values())
-        {
+        for (const discordGuild of client.guilds.cache.values()) {
             client.core.raidBoot(discordGuild).catch(client.swallow('clientReady: raidBoot'));
         }
 
-        const readyText = `Ready on ${client.guilds.cache.size} Servers with ${client.guilds.cache.map(g =>
-        {
-            return g.memberCount ?? 0;
-        }).reduce((acc, count) =>
-        {
-            return acc + count;
-        }, 0)} total members. [${client.imports.time(Date.now() - client.createdAt)}]`;
+        const readyText = `Ready on ${client.guilds.cache.size} Servers with ${client.guilds.cache
+            .map((g) => {
+                return g.memberCount ?? 0;
+            })
+            .reduce((acc, count) => {
+                return acc + count;
+            }, 0)} total members. [${client.imports.time(Date.now() - client.createdAt)}]`;
 
-        const awaitForDatabase = setInterval(() =>
-        {
-            if (client.module.database.isWorkerReadyToGetMessage)
-            {
+        const awaitForDatabase = setInterval(() => {
+            if (client.module.database.isWorkerReadyToGetMessage) {
                 clearInterval(awaitForDatabase);
                 client.setupGuilds();
             }

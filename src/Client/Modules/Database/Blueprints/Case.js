@@ -2,25 +2,30 @@
 
 import Mongoose from 'mongoose';
 
-const CaseSchema = new Mongoose.Schema({
-    g: { type: String },
-    n: { type: Number },
-    v: {
-        type:    Number,
-        default: 1
+const CaseSchema = new Mongoose.Schema(
+    {
+        g: { type: String },
+        n: { type: Number },
+        v: {
+            type: Number,
+            default: 1
+        }
+    },
+    {
+        collection: 'cases',
+        strict: false,
+        minimize: false,
+        versionKey: false
     }
-}, {
+);
 
-    collection: 'cases',
-    strict:     false,
-    minimize:   false,
-    versionKey: false
-});
-
-CaseSchema.index({
-    g: 1,
-    n: 1
-}, { unique: true });
+CaseSchema.index(
+    {
+        g: 1,
+        n: 1
+    },
+    { unique: true }
+);
 CaseSchema.index({
     g: 1,
     u: 1

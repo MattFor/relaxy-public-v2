@@ -5,35 +5,30 @@ export const REQUIRED_PREFIX = 'req';
 
 export const MAX_FORM_KEY_LENGTH = 10;
 
-export const normalizeFormKey = raw =>
-{
+export const normalizeFormKey = (raw) => {
     const key = String(raw ?? '').replace(/[_\-\s]+/g, '');
     const required = key.startsWith(REQUIRED_PREFIX);
-    const name = required
-        ? key.slice(REQUIRED_PREFIX.length)
-        : key;
+    const name = required ? key.slice(REQUIRED_PREFIX.length) : key;
 
-    if (!name)
-    {
+    if (!name) {
         return {
             key,
             required,
             name,
             error: required
-                       ? `"${REQUIRED_PREFIX}" on its own is the required marker, not a name - give the question a name after it.`
-                       : 'A form needs a key.'
+                ? `"${REQUIRED_PREFIX}" on its own is the required marker, not a name - give the question a name after it.`
+                : 'A form needs a key.'
         };
     }
 
-    if (name.length >= MAX_FORM_KEY_LENGTH)
-    {
+    if (name.length >= MAX_FORM_KEY_LENGTH) {
         return {
             key,
             required,
             name,
-            error: `Form keys must be under ${MAX_FORM_KEY_LENGTH} characters${required
-                ? ` (not counting "${REQUIRED_PREFIX}")`
-                : ''} - "${name}" is ${name.length}.`
+            error: `Form keys must be under ${MAX_FORM_KEY_LENGTH} characters${
+                required ? ` (not counting "${REQUIRED_PREFIX}")` : ''
+            } - "${name}" is ${name.length}.`
         };
     }
 
@@ -45,24 +40,15 @@ export const normalizeFormKey = raw =>
     };
 };
 
-export default class Tickets
-{
-    constructor(client)
-    {
+export default class Tickets {
+    constructor(client) {
         this.client = client;
     }
 
-    async createTicketSystem({
-        guild,
-        guildDoc,
-        channel = null,
-        reason = 'Ticket system'
-    })
-    {
+    async createTicketSystem({ guild, guildDoc, channel = null, reason = 'Ticket system' }) {
         const client = this.client;
 
-        if (!guild?.id || guildDoc?.id !== guild.id)
-        {
+        if (!guild?.id || guildDoc?.id !== guild.id) {
             throw new Error('createTicketSystem: guildDoc does not belong to the given guild');
         }
 
@@ -71,12 +57,10 @@ export default class Tickets
         let createdChannel = false;
         let target = channel;
 
-        if (!target)
-        {
-
+        if (!target) {
             target = await guild.channels.create({
-                name:  `ticket-system-${Object.keys(channels).length + 1}`,
-                type:  Discord.ChannelType.GuildText,
+                name: `ticket-system-${Object.keys(channels).length + 1}`,
+                type: Discord.ChannelType.GuildText,
                 topic: 'Press the button on a message to send a ticket to the moderation team.',
                 reason
             });
@@ -87,14 +71,10 @@ export default class Tickets
         }
 
         const hadEntry = !createdChannel && Object.prototype.hasOwnProperty.call(channels, target.id);
-        const priorEntry = hadEntry
-            ? [...channels[target.id]]
-            : null;
+        const priorEntry = hadEntry ? [...channels[target.id]] : null;
 
-        const restoreConfig = () =>
-        {
-            if (priorEntry === null)
-            {
+        const restoreConfig = () => {
+            if (priorEntry === null) {
                 delete channels[target.id];
 
                 return;
@@ -107,24 +87,30 @@ export default class Tickets
 
         let message = null;
 
-        try
-        {
-            message = await client.send(target, null, [
-                {
-                    color:  client.data.embedColor,
-                    title,
-                    footer: client.data.footer
-                }
-            ], null, null, [
-                new Discord.ActionRowBuilder().addComponents(new Discord.ButtonBuilder()
-                    .setCustomId('ticketsystem_real_placeholder')
-                    .setLabel('Create Ticket')
-                    .setStyle(Discord.ButtonStyle.Primary)
-                    .setEmoji('📥'))
-            ]);
-        }
-        catch (error)
-        {
+        try {
+            message = await client.send(
+                target,
+                null,
+                [
+                    {
+                        color: client.data.embedColor,
+                        title,
+                        footer: client.data.footer
+                    }
+                ],
+                null,
+                null,
+                [
+                    new Discord.ActionRowBuilder().addComponents(
+                        new Discord.ButtonBuilder()
+                            .setCustomId('ticketsystem_real_placeholder')
+                            .setLabel('Create Ticket')
+                            .setStyle(Discord.ButtonStyle.Primary)
+                            .setEmoji('📥')
+                    )
+                ]
+            );
+        } catch (error) {
             restoreConfig();
 
             await this._compensate({
@@ -142,13 +128,9 @@ export default class Tickets
 
         let doc;
 
-        try
-        {
-
+        try {
             doc = await client.module.database.TicketingSystem(guild.id, target.id, message.id, title);
-        }
-        catch (error)
-        {
+        } catch (error) {
             restoreConfig();
 
             await this._compensate({
@@ -177,32 +159,25 @@ export default class Tickets
         };
     }
 
-    async _compensate({
-        createdChannel,
-        channel,
-        message,
-        error
-    })
-    {
-        try
-        {
-            if (message)
-            {
+    async _compensate({ createdChannel, channel, message, error }) {
+        try {
+            if (message) {
                 await message.delete().catch(() => null);
             }
 
-            if (createdChannel && channel)
-            {
-                await channel.delete('Ticket system creation failed - removing the channel it created').catch(() =>
-                {
-                    this.client.log('ERROR', `Tickets: could not remove orphaned channel [${channel.id}] in [${channel.guild?.id}] after: ${error?.message ?? error}`);
+            if (createdChannel && channel) {
+                await channel.delete('Ticket system creation failed - removing the channel it created').catch(() => {
+                    this.client.log(
+                        'ERROR',
+                        `Tickets: could not remove orphaned channel [${channel.id}] in [${channel.guild?.id}] after: ${error?.message ?? error}`
+                    );
                 });
             }
-        }
-        catch (cleanupError)
-        {
-
-            this.client.log('ERROR', `Tickets: compensation failed after "${error?.message ?? error}": ${cleanupError?.message ?? cleanupError}`);
+        } catch (cleanupError) {
+            this.client.log(
+                'ERROR',
+                `Tickets: compensation failed after "${error?.message ?? error}": ${cleanupError?.message ?? cleanupError}`
+            );
         }
     }
 }

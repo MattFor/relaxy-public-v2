@@ -1,0 +1,8 @@
+# Left unparsable by comment stripping
+bot/commands/miscellaneous/steamgame.js
+src/Client/Modules/Core/CommonRoutines.js
+src/Client/Modules/Handlers/Features/Profiles.js
+src/Config/Env.js
+types/Config.d.ts
+
+package-lock.json

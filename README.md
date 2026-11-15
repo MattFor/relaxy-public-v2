@@ -16,7 +16,7 @@ structure and logic with none of the history.
 These are removed as well:
 
 | Path                              | Reason                                                                                   |
-|-----------------------------------|------------------------------------------------------------------------------------------|
+| --------------------------------- | ---------------------------------------------------------------------------------------- |
 | `bot/commands/administrator/`     | Owner tooling: console access, database export and transform, blacklist, raid simulation |
 | `src/Client/Modules/MusicPlayer/` | The patched music pipeline                                                               |
 | `.env`, `.env.example`            | Secrets and host paths                                                                   |
@@ -31,7 +31,7 @@ reading only, you cannot use any of this code, only study it.
 ## Contact
 
 |         |                      |
-|---------|----------------------|
+| ------- | -------------------- |
 | Email   | mattfor@relaxy.xyz   |
 | Discord | `mattfor`            |
 | Website | <https://relaxy.xyz> |
@@ -41,7 +41,7 @@ Feel free to message me, I'd be extremely happy to talk about this project!
 ## Built with
 
 |          |                                                                                                                                         |
-|----------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Runtime  | Node.js v24.17.0+, ES6 modules                                                                                                          |
 | Discord  | discord.js v14, `@discordjs/voice`, discord-api-types                                                                                   |
 | Sharding | discord-hybrid-sharding, discord-cross-hosting for multi-machine fleets                                                                 |

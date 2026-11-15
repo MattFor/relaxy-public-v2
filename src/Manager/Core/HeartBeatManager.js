@@ -1,48 +1,37 @@
 'use strict';
 
-import time    from 'pretty-ms';
+import time from 'pretty-ms';
 import Manager from '../Manager.js';
 import IS_VOID from '../../../detect_os.js';
 
-class RingBuffer
-{
-    constructor(size)
-    {
+class RingBuffer {
+    constructor(size) {
         this.idx = 0;
         this.buf = new Array(size).fill(null);
     }
 
-    push(item)
-    {
+    push(item) {
         this.buf[this.idx] = item;
         this.idx = (this.idx + 1) % this.buf.length;
     }
 
-    entries()
-    {
+    entries() {
         return this.buf;
     }
 }
 
-export class HeartbeatManager
-{
-    constructor(options = {})
-    {
+export class HeartbeatManager {
+    constructor(options = {}) {
         this.options = {
-
             beatInterval: 5000,
 
-            checkInterval:       IS_VOID
-                                     ? 5000
-                                     : 10000,
-            maxMissedHeartbeats: IS_VOID
-                                     ? 12
-                                     : 32,
-            startupGrace:        180000, ...options
+            checkInterval: IS_VOID ? 5000 : 10000,
+            maxMissedHeartbeats: IS_VOID ? 12 : 32,
+            startupGrace: 180000,
+            ...options
         };
 
-        if (options.interval && !options.beatInterval)
-        {
+        if (options.interval && !options.beatInterval) {
             this.options.beatInterval = options.interval;
         }
 
@@ -53,14 +42,12 @@ export class HeartbeatManager
         this.heartbeatHistory = {};
     }
 
-    build(manager)
-    {
+    build(manager) {
         manager[this.name] = this;
         this.manager = manager;
     }
 
-    startClusterHeartbeat(cluster)
-    {
+    startClusterHeartbeat(cluster) {
         this.clusters.get(cluster.id)?.stop();
 
         this.heartbeatHistory[cluster.id] = new RingBuffer(10);
@@ -71,38 +58,33 @@ export class HeartbeatManager
         this.manager.info('HEARTBEAT', `Successfully attached to Cluster #${cluster.id}!`);
     }
 
-    stop(cluster, reason)
-    {
+    stop(cluster, reason) {
         const hb = this.clusters.get(cluster.id);
-        if (!hb)
-        {
+        if (!hb) {
             return;
         }
 
         hb.stop();
         this.manager.debug('HEARTBEAT', `Cluster #${cluster.id} ${reason}`);
 
-        if (cluster.restarts.current < cluster.restarts.max)
-        {
+        if (cluster.restarts.current < cluster.restarts.max) {
             cluster.respawn(this.manager.spawnOptions, reason);
             this.manager.debug('HEARTBEAT', `Respawning Cluster #${cluster.id}`);
-        }
-        else
-        {
-            this.manager.debug('HEARTBEAT', `Not Respawning Cluster #${cluster.id} => Respawn Rejected | Max Restarts Reached`);
+        } else {
+            this.manager.debug(
+                'HEARTBEAT',
+                `Not Respawning Cluster #${cluster.id} => Respawn Rejected | Max Restarts Reached`
+            );
         }
     }
 
-    ack(id, date)
-    {
+    ack(id, date) {
         const hb = this.clusters.get(id);
-        if (!hb)
-        {
+        if (!hb) {
             return;
         }
 
-        if (hb.suffocate)
-        {
+        if (hb.suffocate) {
             return;
         }
 
@@ -110,21 +92,18 @@ export class HeartbeatManager
 
         const ackTime = Math.max(1, Math.ceil(Date.now() - date));
         this.heartbeatHistory[id].push({
-            init:     date,
+            init: date,
             duration: ackTime
         });
 
-        if (this.manager.flags.logs.heartbeats)
-        {
+        if (this.manager.flags.logs.heartbeats) {
             this.manager.debug('HEARTBEAT', `Cluster #${id} ACK+ [${time(ackTime)}]`);
         }
     }
 }
 
-export class Heartbeat
-{
-    constructor(manager, instance, options)
-    {
+export class Heartbeat {
+    constructor(manager, instance, options) {
         this.manager = manager;
         this.instance = instance;
         this.options = options;
@@ -142,8 +121,7 @@ export class Heartbeat
         this.start();
     }
 
-    ack(date)
-    {
+    ack(date) {
         this.totalHeartbeats++;
         this.lastBeat = Date.now();
         this.missed = 0;
@@ -151,15 +129,12 @@ export class Heartbeat
         this.missedTimeout = this.options.maxMissedHeartbeats;
     }
 
-    start()
-    {
-
+    start() {
         const interval = this.options.beatInterval ?? this.options.interval;
         const maxMissed = this.options.maxMissedHeartbeats;
         const checkEvery = this.options.checkInterval ?? interval;
 
-        this._checkInterval = setInterval(() =>
-        {
+        this._checkInterval = setInterval(() => {
             const elapsed = Date.now() - this.lastBeat;
             const missedCount = Math.floor(elapsed / interval);
 
@@ -167,31 +142,33 @@ export class Heartbeat
             this.imbalance = missedCount > 0;
             this.missedTimeout = Math.max(0, maxMissed - missedCount);
 
-            if (this.imbalance && this.manager.manager.flags.logs.heartbeats)
-            {
-                this.manager.manager.warn('HEARTBEAT', `! Cluster #${this.instance.id} silent for ${time(elapsed)} (${missedCount}/${maxMissed} missed) !`);
+            if (this.imbalance && this.manager.manager.flags.logs.heartbeats) {
+                this.manager.manager.warn(
+                    'HEARTBEAT',
+                    `! Cluster #${this.instance.id} silent for ${time(elapsed)} (${missedCount}/${maxMissed} missed) !`
+                );
             }
 
             const startupGrace = this.options.startupGrace ?? 180000;
             const inStartupGrace = this.totalHeartbeats === 0 && elapsed < startupGrace;
 
-            if (this.suffocate || (missedCount >= maxMissed && !inStartupGrace))
-            {
+            if (this.suffocate || (missedCount >= maxMissed && !inStartupGrace)) {
                 this.suffocate = true;
-                this.manager.stop(this.instance, `Missed ${missedCount} Heartbeats (silent ${time(elapsed)}) | Attempting Respawn`);
+                this.manager.stop(
+                    this.instance,
+                    `Missed ${missedCount} Heartbeats (silent ${time(elapsed)}) | Attempting Respawn`
+                );
             }
         }, checkEvery);
     }
 
-    stop()
-    {
+    stop() {
         clearInterval(this._checkInterval);
         this._checkInterval = null;
         this.heartbeats.clear();
     }
 
-    resume()
-    {
+    resume() {
         this.stop();
         this.missed = 0;
         this.imbalance = false;

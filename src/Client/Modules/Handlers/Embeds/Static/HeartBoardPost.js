@@ -1,8 +1,8 @@
 'use strict';
 
 import Mongoose from 'mongoose';
-import Relaxy   from '../../../../Relaxy.js';
-import Discord  from 'discord.js';
+import Relaxy from '../../../../Relaxy.js';
+import Discord from 'discord.js';
 
 import { describeMessage } from '../../../Core/Utilities.js';
 
@@ -15,13 +15,12 @@ const IMAGE_STICKER_FORMATS = new Set([
     Discord.StickerFormatType.APNG,
     Discord.StickerFormatType.GIF
 ]);
-const isSpoiler = attachment => typeof attachment?.name === 'string' && attachment.name.startsWith('SPOILER_');
+const isSpoiler = (attachment) => typeof attachment?.name === 'string' && attachment.name.startsWith('SPOILER_');
 
-const isImage = attachment => typeof attachment?.contentType === 'string' && attachment.contentType.startsWith('image/');
-const humanSize = bytes =>
-{
-    if (!Number.isFinite(bytes) || bytes <= 0)
-    {
+const isImage = (attachment) =>
+    typeof attachment?.contentType === 'string' && attachment.contentType.startsWith('image/');
+const humanSize = (bytes) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) {
         return null;
     }
 
@@ -30,18 +29,14 @@ const humanSize = bytes =>
         : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 };
 
-export default class HeartBoardPostEmbed
-{
-    static async from(client, message, heartBoardSettings)
-    {
+export default class HeartBoardPostEmbed {
+    static async from(client, message, heartBoardSettings) {
         let resolved = message;
 
-        if (message?.partial)
-        {
+        if (message?.partial) {
             resolved = await message.fetch().catch(() => null);
 
-            if (!resolved)
-            {
+            if (!resolved) {
                 client.log('WARN', `[HeartBoard] Could not fetch partial message ${message.id}; skipping the post.`);
                 return null;
             }
@@ -50,12 +45,12 @@ export default class HeartBoardPostEmbed
         return new HeartBoardPostEmbed(client, resolved, heartBoardSettings).data;
     }
 
-    constructor(client, message, heartBoardSettings)
-    {
-
-        if (message?.partial)
-        {
-            client.log('WARN', `[HeartBoard] Built from a PARTIAL message (${message.id}) - use HeartBoardPostEmbed.from() instead.`);
+    constructor(client, message, heartBoardSettings) {
+        if (message?.partial) {
+            client.log(
+                'WARN',
+                `[HeartBoard] Built from a PARTIAL message (${message.id}) - use HeartBoardPostEmbed.from() instead.`
+            );
             this.data = null;
 
             return;
@@ -64,19 +59,15 @@ export default class HeartBoardPostEmbed
         this.data = this.generate(client, message, heartBoardSettings);
     }
 
-    resolveMedia(message)
-    {
+    resolveMedia(message) {
         const attachments = [...(message.attachments?.values() ?? [])];
         const source = message.embeds?.[0]?.data ?? null;
 
         const images = [];
         const files = [];
 
-        for (const attachment of attachments)
-        {
-
-            if (isSpoiler(attachment) || !isImage(attachment))
-            {
+        for (const attachment of attachments) {
+            if (isSpoiler(attachment) || !isImage(attachment)) {
                 files.push(attachment);
                 continue;
             }
@@ -90,49 +81,39 @@ export default class HeartBoardPostEmbed
 
         const links = [];
 
-        if (source)
-        {
+        if (source) {
             const embedImage = source.image?.url ?? null;
             const embedThumb = source.thumbnail?.url ?? null;
 
-            switch (source.type)
-            {
-
+            switch (source.type) {
                 case 'image':
-                case 'gifv':
-                {
+                case 'gifv': {
                     image ??= embedImage ?? embedThumb;
 
-                    if (source.type === 'gifv' && source.url)
-                    {
+                    if (source.type === 'gifv' && source.url) {
                         links.push({
                             label: 'View animated original',
-                            url:   source.url
+                            url: source.url
                         });
                     }
 
                     break;
                 }
 
-                case 'video':
-                {
+                case 'video': {
                     image ??= embedImage ?? embedThumb;
 
-                    if (source.url)
-                    {
+                    if (source.url) {
                         links.push({
-                            label: source.title
-                                       ? `Watch: ${source.title}`
-                                       : 'Watch',
-                            url:   source.url
+                            label: source.title ? `Watch: ${source.title}` : 'Watch',
+                            url: source.url
                         });
                     }
 
                     break;
                 }
 
-                case 'rich':
-                {
+                case 'rich': {
                     rich = source;
                     image ??= embedImage;
                     thumbnail ??= embedThumb;
@@ -140,8 +121,7 @@ export default class HeartBoardPostEmbed
                     break;
                 }
 
-                default:
-                {
+                default: {
                     image ??= embedImage;
                     thumbnail ??= embedThumb;
 
@@ -152,26 +132,17 @@ export default class HeartBoardPostEmbed
 
         const sticker = message.stickers?.first?.() ?? null;
 
-        if (!image && sticker && IMAGE_STICKER_FORMATS.has(sticker.format))
-        {
+        if (!image && sticker && IMAGE_STICKER_FORMATS.has(sticker.format)) {
             image = sticker.url;
         }
 
-        for (const attachment of [
-            ...images.slice(1),
-            ...files
-        ])
-        {
+        for (const attachment of [...images.slice(1), ...files]) {
             const size = humanSize(attachment.size);
             const name = attachment.name ?? 'attachment';
 
             links.push({
-                label: `${isSpoiler(attachment)
-                    ? '🔒 '
-                    : ''}${name}${size
-                    ? ` (${size})`
-                    : ''}`,
-                url:   attachment.url
+                label: `${isSpoiler(attachment) ? '🔒 ' : ''}${name}${size ? ` (${size})` : ''}`,
+                url: attachment.url
             });
         }
 
@@ -183,14 +154,9 @@ export default class HeartBoardPostEmbed
         };
     }
 
-    generate(client, message, heartBoardSettings)
-    {
-        try
-        {
-
-            const colour = Number.isInteger(heartBoardSettings?.co)
-                ? heartBoardSettings.co
-                : DEFAULT_COLOUR;
+    generate(client, message, heartBoardSettings) {
+        try {
+            const colour = Number.isInteger(heartBoardSettings?.co) ? heartBoardSettings.co : DEFAULT_COLOUR;
 
             const names = [
                 client.utils.tag(message.author),
@@ -203,102 +169,87 @@ export default class HeartBoardPostEmbed
             const post = new client.imports.discord.EmbedBuilder()
                 .setColor(colour)
                 .setAuthor({
-                    name:    names[heartBoardSettings?.nm] ?? names[DEFAULT_NAME_MODE],
+                    name: names[heartBoardSettings?.nm] ?? names[DEFAULT_NAME_MODE],
                     iconURL: (message.member ?? message.author).displayAvatarURL({
                         extension: 'png',
-                        size:      4096
+                        size: 4096
                     }),
-                    url:     message.url
+                    url: message.url
                 })
                 .setFooter({
-                    text:    `ID: ${message.id}`,
+                    text: `ID: ${message.id}`,
                     iconURL: client.config.text.links.relaxyImage
                 })
                 .setTimestamp(message.createdAt);
 
             const body = [];
 
-            const content = typeof message.content === 'string'
-                ? message.content.trim()
-                : '';
-            const contentIsJustItsOwnMedia = content && media.image && (content === media.image || content === message.embeds?.[0]?.data?.url);
+            const content = typeof message.content === 'string' ? message.content.trim() : '';
+            const contentIsJustItsOwnMedia =
+                content && media.image && (content === media.image || content === message.embeds?.[0]?.data?.url);
 
-            if (content && !contentIsJustItsOwnMedia)
-            {
+            if (content && !contentIsJustItsOwnMedia) {
                 body.push(content);
             }
 
             const otherShapes = describeMessage(message, {
-                limit:   DESCRIPTION_LIMIT,
+                limit: DESCRIPTION_LIMIT,
                 content: false,
-                embeds:  false,
-                media:   false
+                embeds: false,
+                media: false
             });
 
-            if (otherShapes)
-            {
+            if (otherShapes) {
                 body.push(otherShapes);
             }
 
-            if (media.rich)
-            {
-                if (media.rich.title)
-                {
+            if (media.rich) {
+                if (media.rich.title) {
                     post.setTitle(String(media.rich.title).slice(0, 256));
 
-                    if (media.rich.url)
-                    {
+                    if (media.rich.url) {
                         post.setURL(media.rich.url);
                     }
                 }
 
-                if (media.rich.description)
-                {
+                if (media.rich.description) {
                     body.push(media.rich.description);
                 }
 
                 const fields = (media.rich.fields ?? [])
-                    .filter(field => field?.name && field?.value)
+                    .filter((field) => field?.name && field?.value)
                     .slice(0, 25)
-                    .map(field => ({
-                        name:   String(field.name).slice(0, 256),
-                        value:  String(field.value).slice(0, FIELD_LIMIT),
+                    .map((field) => ({
+                        name: String(field.name).slice(0, 256),
+                        value: String(field.value).slice(0, FIELD_LIMIT),
                         inline: Boolean(field.inline)
                     }));
 
-                if (fields.length)
-                {
+                if (fields.length) {
                     post.setFields(fields);
                 }
             }
 
-            if (media.links.length)
-            {
-                body.push(media.links.map(link => `**[${link.label}](${link.url})**`).join('\n'));
+            if (media.links.length) {
+                body.push(media.links.map((link) => `**[${link.label}](${link.url})**`).join('\n'));
             }
 
             const description = body.join('\n\n').slice(0, DESCRIPTION_LIMIT);
 
-            if (description)
-            {
+            if (description) {
                 post.setDescription(description);
             }
 
-            if (typeof media.image === 'string' && media.image)
-            {
+            if (typeof media.image === 'string' && media.image) {
                 post.setImage(media.image);
             }
 
-            if (typeof media.thumbnail === 'string' && media.thumbnail && media.thumbnail !== media.image)
-            {
+            if (typeof media.thumbnail === 'string' && media.thumbnail && media.thumbnail !== media.image) {
                 post.setThumbnail(media.thumbnail);
             }
 
             return post;
-        }
-        catch (error)
-        {
-
+        } catch (error) {
             client.data.errors++;
             client.log('ERROR', '[HeartBoard] Could not build the post embed:', error);
 

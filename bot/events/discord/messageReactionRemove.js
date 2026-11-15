@@ -1,13 +1,14 @@
 'use strict';
 
 import Discord from 'discord.js';
-import Relaxy  from '../../../src/Client/Relaxy.js';
+import Relaxy from '../../../src/Client/Relaxy.js';
 
 export default {
-    async run(client, reaction, user)
-    {
-        if (reaction.message.channel.type === client.imports.discord.ChannelType.DM || reaction.message.channel.type === client.imports.discord.ChannelType.GroupDM)
-        {
+    async run(client, reaction, user) {
+        if (
+            reaction.message.channel.type === client.imports.discord.ChannelType.DM ||
+            reaction.message.channel.type === client.imports.discord.ChannelType.GroupDM
+        ) {
             return;
         }
 

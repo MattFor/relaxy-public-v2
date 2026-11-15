@@ -1,6 +1,6 @@
-import type {ClusterManager} from "discord-hybrid-sharding";
-import type ModuleLoader from "../src/Core/ModuleLoader.js";
-import type {LogChannel, LogLevel} from "./Relaxy.js";
+import type { ClusterManager } from 'discord-hybrid-sharding';
+import type ModuleLoader from '../src/Core/ModuleLoader.js';
+import type { LogChannel, LogLevel } from './Relaxy.js';
 
 export interface RelaxyClusterManagerOptions {
     clientFilePath: string;
@@ -92,16 +92,19 @@ export default class RelaxyClusterManager extends ClusterManager {
 
     restartSelfRepair(reason?: string): Promise<void>;
 
-    _recluster(executionDelay: number, options?: {
-        timeout?: number;
-        delay?: number;
-        restartMode?: string | null;
-        totalShards?: number;
-        totalClusters?: number;
-        shardsPerClusters?: number;
-        shardClusterList?: number[];
-        shardList?: number[];
-    }): Promise<unknown>;
+    _recluster(
+        executionDelay: number,
+        options?: {
+            timeout?: number;
+            delay?: number;
+            restartMode?: string | null;
+            totalShards?: number;
+            totalClusters?: number;
+            shardsPerClusters?: number;
+            shardClusterList?: number[];
+            shardList?: number[];
+        }
+    ): Promise<unknown>;
 
     _awaitReclusterAck(...args: unknown[]): Promise<unknown>;
 

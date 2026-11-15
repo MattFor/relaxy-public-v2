@@ -10,10 +10,8 @@ const WINDOW_MS = 30 * 1000;
 let histogram = null;
 let lastReset = 0;
 
-export const startLoadMonitor = () =>
-{
-    if (histogram)
-    {
+export const startLoadMonitor = () => {
+    if (histogram) {
         return;
     }
 
@@ -22,17 +20,14 @@ export const startLoadMonitor = () =>
     lastReset = Date.now();
 };
 
-export const eventLoopP95 = () =>
-{
-    if (!histogram)
-    {
+export const eventLoopP95 = () => {
+    if (!histogram) {
         return 0;
     }
 
     const p95 = histogram.percentile(95) / 1e6;
 
-    if (Date.now() - lastReset > WINDOW_MS)
-    {
+    if (Date.now() - lastReset > WINDOW_MS) {
         histogram.reset();
         lastReset = Date.now();
     }

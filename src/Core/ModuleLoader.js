@@ -5,21 +5,17 @@ import time from 'pretty-ms';
 const charTable = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
 const SOURCE_ROOT = new URL('../', import.meta.url);
-const resolveModulePath = modulePath => (/^(?:file:|https?:|\/)/.test(modulePath)
-    ? modulePath
-    : new URL(modulePath, SOURCE_ROOT).href);
+const resolveModulePath = (modulePath) =>
+    /^(?:file:|https?:|\/)/.test(modulePath) ? modulePath : new URL(modulePath, SOURCE_ROOT).href;
 
-export const getNestedProperty = (obj, path) => typeof path === 'string' && path.length > 0
-    ? path.split('.').reduce((acc, key) => acc?.[key], obj)
-    : undefined;
+export const getNestedProperty = (obj, path) =>
+    typeof path === 'string' && path.length > 0 ? path.split('.').reduce((acc, key) => acc?.[key], obj) : undefined;
 
-export const explainHotReloadLimit = error =>
-{
+export const explainHotReloadLimit = (error) => {
     const message = String(error?.message ?? error);
     const missing = message.match(/does not provide an export named '([^']+)'/)?.[1];
 
-    if (!missing)
-    {
+    if (!missing) {
         return null;
     }
 
@@ -35,10 +31,8 @@ export const explainHotReloadLimit = error =>
     ].join('\n');
 };
 
-export default class ModuleLoader
-{
-    constructor(source, onLoadFunc, logArguments, logFuncs)
-    {
+export default class ModuleLoader {
+    constructor(source, onLoadFunc, logArguments, logFuncs) {
         this.source = source ?? {};
 
         this.modules = {};
@@ -48,56 +42,61 @@ export default class ModuleLoader
 
         this.onLoadFunc = onLoadFunc;
 
-        this.logArguments = (logArguments && typeof logArguments === 'object')
-            ? logArguments
-            : {
-                info:  logArguments,
-                data:  logArguments,
-                warn:  logArguments,
-                debug: logArguments,
-                error: logArguments
-            };
-        this.logFuncs = (logFuncs && typeof logFuncs === 'object')
-            ? logFuncs
-            : {
-                info:  logFuncs,
-                data:  logFuncs,
-                warn:  logFuncs,
-                debug: logFuncs,
-                error: logFuncs
-            };
+        this.logArguments =
+            logArguments && typeof logArguments === 'object'
+                ? logArguments
+                : {
+                      info: logArguments,
+                      data: logArguments,
+                      warn: logArguments,
+                      debug: logArguments,
+                      error: logArguments
+                  };
+        this.logFuncs =
+            logFuncs && typeof logFuncs === 'object'
+                ? logFuncs
+                : {
+                      info: logFuncs,
+                      data: logFuncs,
+                      warn: logFuncs,
+                      debug: logFuncs,
+                      error: logFuncs
+                  };
     }
 
-    setOnLoadFunc(func)
-    {
+    setOnLoadFunc(func) {
         this.logFuncs.debug(this.logArguments.warn, 'Setting new onLoadFunc.');
-        return this.onLoadFunc = func;
+        return (this.onLoadFunc = func);
     }
 
-    async reloadAll(args)
-    {
+    async reloadAll(args) {
         this.logFuncs.warn(this.logArguments.warn, 'Attempting to reload ALL modules.');
 
-        const loadedModules = Object.keys(this.modules).filter(key => this.modules[key] != null);
+        const loadedModules = Object.keys(this.modules).filter((key) => this.modules[key] != null);
 
-        for (const module of loadedModules)
-        {
-            await this.loadModule(module,
-                typeof args === 'object' && args !== null
-                    ? args[module]
-                    : args,
-                true);
+        for (const module of loadedModules) {
+            await this.loadModule(module, typeof args === 'object' && args !== null ? args[module] : args, true);
         }
 
         return this.logFuncs.warn(this.logArguments.warn, 'All modules cycled. Reload Complete.');
     }
 
-    async loadModule(modulePath, args, overwrite, silent, noReplaceInSource, customSourcePath, errOnly, customExportName)
-    {
+    async loadModule(
+        modulePath,
+        args,
+        overwrite,
+        silent,
+        noReplaceInSource,
+        customSourcePath,
+        errOnly,
+        customExportName
+    ) {
         customExportName = customExportName ?? 'default';
 
-        if (!overwrite && Object.values(this.modulePaths).find(p => typeof p === 'string' && p.includes(modulePath)))
-        {
+        if (
+            !overwrite &&
+            Object.values(this.modulePaths).find((p) => typeof p === 'string' && p.includes(modulePath))
+        ) {
             return;
         }
 
@@ -106,56 +105,53 @@ export default class ModuleLoader
 
         const MISSING = Symbol('missing');
         const sourceValue = customSourcePath
-            ? customSourcePath.split('.').reduce((obj, key) => (obj !== MISSING && obj && Object.prototype.hasOwnProperty.call(obj, key))
-                ? obj[key]
-                : MISSING, this.source)
+            ? customSourcePath
+                  .split('.')
+                  .reduce(
+                      (obj, key) =>
+                          obj !== MISSING && obj && Object.prototype.hasOwnProperty.call(obj, key) ? obj[key] : MISSING,
+                      this.source
+                  )
             : MISSING;
 
         const moduleExistsInSource = sourceValue !== MISSING && sourceValue !== null && sourceValue !== undefined;
 
-        if (!silent && !errOnly)
-        {
-            this.logFuncs.debug(this.logArguments.debug, `${moduleExistsInSource} - Checking source with key: ${customSourcePath} for module: ${modulePath}`);
+        if (!silent && !errOnly) {
+            this.logFuncs.debug(
+                this.logArguments.debug,
+                `${moduleExistsInSource} - Checking source with key: ${customSourcePath} for module: ${modulePath}`
+            );
         }
 
-        if (!overwrite && moduleExistsInSource)
-        {
+        if (!overwrite && moduleExistsInSource) {
             const rawExport = getNestedProperty(this.source, customSourcePath);
 
             let registrationName = customSourcePath;
-            if (typeof rawExport === 'function' && rawExport.name)
-            {
+            if (typeof rawExport === 'function' && rawExport.name) {
                 registrationName = rawExport.name;
-            }
-            else if (rawExport && typeof rawExport === 'object' && rawExport.name)
-            {
+            } else if (rawExport && typeof rawExport === 'object' && rawExport.name) {
                 registrationName = rawExport.name;
             }
 
             let storedModule = rawExport;
-            if (typeof rawExport === 'function' && rawExport.prototype && Object.keys(rawExport.prototype).length)
-            {
-                try
-                {
-                    const ctorArgs = Array.isArray(args)
-                        ? args
-                        : (args === undefined
-                            ? []
-                            : [args]);
-                    storedModule = (args === 0b101)
-                        ? rawExport
-                        : new rawExport(...ctorArgs);
+            if (typeof rawExport === 'function' && rawExport.prototype && Object.keys(rawExport.prototype).length) {
+                try {
+                    const ctorArgs = Array.isArray(args) ? args : args === undefined ? [] : [args];
+                    storedModule = args === 0b101 ? rawExport : new rawExport(...ctorArgs);
 
-                    if (!silent && !errOnly)
-                    {
-                        this.logFuncs.info(this.logArguments.info, `[${logIndex}] Instantiated "${registrationName}" from source`);
+                    if (!silent && !errOnly) {
+                        this.logFuncs.info(
+                            this.logArguments.info,
+                            `[${logIndex}] Instantiated "${registrationName}" from source`
+                        );
                     }
-                }
-                catch (e)
-                {
-                    if (!silent)
-                    {
-                        this.logFuncs.error(this.logArguments.error, `[${logIndex}] Instantiation failed for "${registrationName}":`, e);
+                } catch (e) {
+                    if (!silent) {
+                        this.logFuncs.error(
+                            this.logArguments.error,
+                            `[${logIndex}] Instantiation failed for "${registrationName}":`,
+                            e
+                        );
                     }
 
                     storedModule = rawExport;
@@ -166,9 +162,11 @@ export default class ModuleLoader
             this.modulePaths[registrationName] = modulePath;
             this.moduleSourcePaths[registrationName] = customSourcePath;
 
-            if (!silent && !errOnly)
-            {
-                this.logFuncs.info(this.logArguments.info, `[${logIndex}] Loaded "${modulePath}" from source key "${customSourcePath}" as "${registrationName}"`);
+            if (!silent && !errOnly) {
+                this.logFuncs.info(
+                    this.logArguments.info,
+                    `[${logIndex}] Loaded "${modulePath}" from source key "${customSourcePath}" as "${registrationName}"`
+                );
             }
 
             return registrationName;
@@ -177,32 +175,33 @@ export default class ModuleLoader
         let module = null;
         const start = Date.now();
 
-        if (!silent && !errOnly)
-        {
-            this.logFuncs.debug(this.logArguments.debug, `[${logIndex}] Attempting to load module: "${modulePath}" property: ${customExportName}`);
+        if (!silent && !errOnly) {
+            this.logFuncs.debug(
+                this.logArguments.debug,
+                `[${logIndex}] Attempting to load module: "${modulePath}" property: ${customExportName}`
+            );
         }
 
-        try
-        {
-            module = await import(`${resolveModulePath(modulePath)}?foo=${(() =>
-            {
-                let result = '';
+        try {
+            module = await import(
+                `${resolveModulePath(modulePath)}?foo=${(() => {
+                    let result = '';
 
-                for (let i = 0; i < 20; i++)
-                {
-                    result += charTable.charAt(Math.floor(Math.random() * 62));
-                }
+                    for (let i = 0; i < 20; i++) {
+                        result += charTable.charAt(Math.floor(Math.random() * 62));
+                    }
 
-                return result;
-            })()}`);
-        }
-        catch (e)
-        {
-            if (!silent)
-            {
+                    return result;
+                })()}`
+            );
+        } catch (e) {
+            if (!silent) {
                 const limitation = explainHotReloadLimit(e);
 
-                this.logFuncs.error(this.logArguments.error, `[${logIndex}] Loading module: "${modulePath}" - FAILURE ${time(Date.now() - start)}`);
+                this.logFuncs.error(
+                    this.logArguments.error,
+                    `[${logIndex}] Loading module: "${modulePath}" - FAILURE ${time(Date.now() - start)}`
+                );
 
                 this.logFuncs.error(this.logArguments.error, limitation ?? e);
             }
@@ -210,57 +209,51 @@ export default class ModuleLoader
             return;
         }
 
-        if (!Object.prototype.hasOwnProperty.call(module, customExportName))
-        {
-            return this.logFuncs.error(this.logArguments.error, `[${logIndex}] Loading module: "${modulePath}" - FAILURE | No .${customExportName} property! ${time(Date.now() - start)}`);
-        }
-        else
-        {
+        if (!Object.prototype.hasOwnProperty.call(module, customExportName)) {
+            return this.logFuncs.error(
+                this.logArguments.error,
+                `[${logIndex}] Loading module: "${modulePath}" - FAILURE | No .${customExportName} property! ${time(Date.now() - start)}`
+            );
+        } else {
             module = module[customExportName];
         }
 
-        let registrationName = module && module.name
-            ? module.name
-            : '';
-        if (!registrationName)
-        {
-            if (module && module.constructor && module.constructor.name)
-            {
+        let registrationName = module && module.name ? module.name : '';
+        if (!registrationName) {
+            if (module && module.constructor && module.constructor.name) {
                 registrationName = module.constructor.name;
 
-                if (!silent)
-                {
-                    this.logFuncs.warn(this.logArguments.warn, `[${logIndex}] Default constructor name found for module: ${modulePath} | Setting ${module.constructor.name}`);
+                if (!silent) {
+                    this.logFuncs.warn(
+                        this.logArguments.warn,
+                        `[${logIndex}] Default constructor name found for module: ${modulePath} | Setting ${module.constructor.name}`
+                    );
                 }
-            }
-            else
-            {
-                return this.logFuncs.error(this.logArguments.error, `[${logIndex}] Loading module: "${modulePath}" - FAILURE | No name property! ${time(Date.now() - start)}`);
+            } else {
+                return this.logFuncs.error(
+                    this.logArguments.error,
+                    `[${logIndex}] Loading module: "${modulePath}" - FAILURE | No name property! ${time(Date.now() - start)}`
+                );
             }
         }
 
-        if (this.modules[registrationName] && overwrite && !silent)
-        {
-            this.logFuncs.warn(this.logArguments.warn, `[${logIndex}] Module with that name already present; Attempting to unload module: "${this.modulePaths[registrationName]}"`);
+        if (this.modules[registrationName] && overwrite && !silent) {
+            this.logFuncs.warn(
+                this.logArguments.warn,
+                `[${logIndex}] Module with that name already present; Attempting to unload module: "${this.modulePaths[registrationName]}"`
+            );
         }
 
         let newModule;
-        try
-        {
-            const ctorArgs = Array.isArray(args)
-                ? args
-                : (args === undefined
-                    ? []
-                    : [args]);
-            newModule = args === 0b101
-                ? module
-                : new module(...ctorArgs);
-        }
-        catch (e)
-        {
-            if (!silent)
-            {
-                this.logFuncs.error(this.logArguments.error, `[${logIndex}] Loading module: "${modulePath}" - FAILURE | Instantiation failed ${time(Date.now() - start)}`);
+        try {
+            const ctorArgs = Array.isArray(args) ? args : args === undefined ? [] : [args];
+            newModule = args === 0b101 ? module : new module(...ctorArgs);
+        } catch (e) {
+            if (!silent) {
+                this.logFuncs.error(
+                    this.logArguments.error,
+                    `[${logIndex}] Loading module: "${modulePath}" - FAILURE | Instantiation failed ${time(Date.now() - start)}`
+                );
                 this.logFuncs.error(this.logArguments.error, e);
             }
 
@@ -270,27 +263,27 @@ export default class ModuleLoader
         Object.assign(this.modules, { [registrationName]: newModule });
         Object.assign(this.modulePaths, { [registrationName]: modulePath });
 
-        if (!silent && !errOnly)
-        {
-            this.logFuncs.debug(this.logArguments.debug, `[${logIndex}] Loaded module: "${modulePath}" - ${registrationName} SUCCESSFULLY ${time(Date.now() - start)}`);
+        if (!silent && !errOnly) {
+            this.logFuncs.debug(
+                this.logArguments.debug,
+                `[${logIndex}] Loaded module: "${modulePath}" - ${registrationName} SUCCESSFULLY ${time(Date.now() - start)}`
+            );
         }
 
-        if (!noReplaceInSource)
-        {
-            if (customSourcePath)
-            {
+        if (!noReplaceInSource) {
+            if (customSourcePath) {
                 let current = this.source;
                 const parts = customSourcePath.split('.');
 
-                if (!silent && !errOnly)
-                {
-                    this.logFuncs.debug(this.logArguments.debug, `[${logIndex}] Loaded ${registrationName} custom source path: ${customSourcePath} ${time(Date.now() - start)}`);
+                if (!silent && !errOnly) {
+                    this.logFuncs.debug(
+                        this.logArguments.debug,
+                        `[${logIndex}] Loaded ${registrationName} custom source path: ${customSourcePath} ${time(Date.now() - start)}`
+                    );
                 }
 
-                for (let i = 0; i < parts.length - 1; i++)
-                {
-                    if (!current[parts[i]])
-                    {
+                for (let i = 0; i < parts.length - 1; i++) {
+                    if (!current[parts[i]]) {
                         current[parts[i]] = {};
                     }
 
@@ -299,55 +292,53 @@ export default class ModuleLoader
 
                 Object.assign(current, { [parts[parts.length - 1]]: newModule });
                 this.moduleSourcePaths[registrationName] = customSourcePath;
-            }
-            else
-            {
+            } else {
                 Object.assign(this.source, { [registrationName]: newModule });
                 this.moduleSourcePaths[registrationName] = registrationName;
             }
         }
 
-        if (this.onLoadFunc)
-        {
+        if (this.onLoadFunc) {
             const newStart = Date.now();
 
-            if (!silent)
-            {
-                this.logFuncs.data(this.logArguments.data, `[${logIndex}] Attempting onLoadFunction on module:
-"${modulePath}" - ${registrationName}`);
+            if (!silent) {
+                this.logFuncs.data(
+                    this.logArguments.data,
+                    `[${logIndex}] Attempting onLoadFunction on module:
+"${modulePath}" - ${registrationName}`
+                );
             }
 
-            try
-            {
+            try {
                 await this.onLoadFunc(registrationName);
-            }
-            catch (e)
-            {
-                if (!silent)
-                {
-                    this.logFuncs.error(this.logArguments.error, `[${logIndex}] onLoadFunction for module:
-"${modulePath}" - ${registrationName} FAILED ${time(Date.now() - start)} ${time(Date.now() - newStart)}`);
+            } catch (e) {
+                if (!silent) {
+                    this.logFuncs.error(
+                        this.logArguments.error,
+                        `[${logIndex}] onLoadFunction for module:
+"${modulePath}" - ${registrationName} FAILED ${time(Date.now() - start)} ${time(Date.now() - newStart)}`
+                    );
                 }
 
                 return;
             }
 
-            if (!silent)
-            {
-                this.logFuncs.data(this.logArguments.data, `[${logIndex}] onLoadFunction worked on module:
-"${modulePath}" - ${registrationName} SUCCESSFULLY ${time(Date.now() - start)} ${time(Date.now() - newStart)}`);
+            if (!silent) {
+                this.logFuncs.data(
+                    this.logArguments.data,
+                    `[${logIndex}] onLoadFunction worked on module:
+"${modulePath}" - ${registrationName} SUCCESSFULLY ${time(Date.now() - start)} ${time(Date.now() - newStart)}`
+                );
             }
         }
 
         return registrationName;
     }
 
-    unloadModule(moduleName)
-    {
+    unloadModule(moduleName) {
         const start = Date.now();
 
-        if (!this.modules[moduleName] && !this.modulePaths[moduleName] && !this.moduleSourcePaths[moduleName])
-        {
+        if (!this.modules[moduleName] && !this.modulePaths[moduleName] && !this.moduleSourcePaths[moduleName]) {
             return this.logFuncs.error(this.logArguments.error, 'This module does not exist!');
         }
 
@@ -356,29 +347,29 @@ export default class ModuleLoader
 
         this.logFuncs.debug(this.logArguments.debug, `Attempting to remove module: ${modulePath} from source`);
 
-        if (sourcePath)
-        {
+        if (sourcePath) {
             const parts = sourcePath.split('.');
             let current = this.source;
 
-            for (let i = 0; i < parts.length - 1 && current; i++)
-            {
+            for (let i = 0; i < parts.length - 1 && current; i++) {
                 current = current[parts[i]];
             }
 
-            if (current && Object.prototype.hasOwnProperty.call(current, parts[parts.length - 1]))
-            {
+            if (current && Object.prototype.hasOwnProperty.call(current, parts[parts.length - 1])) {
                 current[parts[parts.length - 1]] = null;
             }
         }
 
-        this.moduleLog = this.moduleLog.filter(i => i !== modulePath);
+        this.moduleLog = this.moduleLog.filter((i) => i !== modulePath);
 
         this.logFuncs.debug(this.logArguments.debug, `Attempting to remove module: ${modulePath} from module loader`);
         this.modules[moduleName] = null;
         this.modulePaths[moduleName] = null;
         this.moduleSourcePaths[moduleName] = null;
 
-        return this.logFuncs.debug(this.logArguments.debug, `Module: ${modulePath} removed SUCCESSFULLY ${time(Date.now() - start)}`);
+        return this.logFuncs.debug(
+            this.logArguments.debug,
+            `Module: ${modulePath} removed SUCCESSFULLY ${time(Date.now() - start)}`
+        );
     }
 }

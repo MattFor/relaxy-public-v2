@@ -1,41 +1,35 @@
-import type * as Discord from "discord.js";
-import type {ClusterClient} from "discord-hybrid-sharding";
-import type ModuleLoader from "../src/Core/ModuleLoader.js";
-import type * as CDN from "../src/Assets/CDN.js";
-import type {Command} from "./Command.js";
-import type {RelaxyConfig} from "./Config.js";
-import type {LinkProposal, MessageTypeTable, ModlogEvent, OperatingMode} from "./DataTable.js";
-import type {
-    BlacklistEntry,
-    GuildDoc,
-    MemberDoc,
-    ProfileDoc,
-    Snowflake
-} from "./Database.js";
+import type * as Discord from 'discord.js';
+import type { ClusterClient } from 'discord-hybrid-sharding';
+import type ModuleLoader from '../src/Core/ModuleLoader.js';
+import type * as CDN from '../src/Assets/CDN.js';
+import type { Command } from './Command.js';
+import type { RelaxyConfig } from './Config.js';
+import type { LinkProposal, MessageTypeTable, ModlogEvent, OperatingMode } from './DataTable.js';
+import type { BlacklistEntry, GuildDoc, MemberDoc, ProfileDoc, Snowflake } from './Database.js';
 
-export type {GuildDoc, MemberDoc, ProfileDoc, Snowflake};
-export type {LinkProposal};
+export type { GuildDoc, MemberDoc, ProfileDoc, Snowflake };
+export type { LinkProposal };
 export type Sendable = string | object;
 
-export type LogLevel = "INFO" | "WARN" | "ERROR" | "DEBUG" | "DATA";
+export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'DATA';
 
 export type LogChannel =
-    | "debug"
-    | "heartbeats"
-    | "inter_process_messages"
-    | "file_operations"
-    | "garbage_collector"
-    | "cpu_monitor"
-    | "cpu_monitor_file_logs"
-    | "music_debug"
-    | "raw_events"
-    | "event_names"
-    | "rate_limiter"
-    | "message_debug"
-    | "database"
-    | "swallowed"
-    | "ratelimits"
-    | "statistics";
+    | 'debug'
+    | 'heartbeats'
+    | 'inter_process_messages'
+    | 'file_operations'
+    | 'garbage_collector'
+    | 'cpu_monitor'
+    | 'cpu_monitor_file_logs'
+    | 'music_debug'
+    | 'raw_events'
+    | 'event_names'
+    | 'rate_limiter'
+    | 'message_debug'
+    | 'database'
+    | 'swallowed'
+    | 'ratelimits'
+    | 'statistics';
 
 export interface DocumentChange {
     alter: string;
@@ -43,13 +37,13 @@ export interface DocumentChange {
 }
 
 export interface RelaxyImports {
-    fs: typeof import("fs");
+    fs: typeof import('fs');
     time: unknown;
     lodash: unknown;
     request: unknown;
     discord: typeof Discord;
     beautify: unknown;
-    mongoose: typeof import("mongoose");
+    mongoose: typeof import('mongoose');
     canvacord: unknown;
     translator: unknown;
     progressbar: unknown;
@@ -116,8 +110,6 @@ export interface RelaxyModuleLookupTable {
 }
 
 export interface RelaxyModuleContainer {
-
-
     relaxyRequestManager: unknown | null;
     profiles: unknown | null;
     rl: unknown | null;
@@ -133,12 +125,10 @@ export interface RelaxyModuleContainer {
     actions: unknown | null;
     docRev: unknown | null;
 
-
     database: unknown | null;
     processEventManager: unknown | null;
     clusterCommunicator: unknown | null;
     stats: unknown | null;
-
 
     recorder: unknown | null;
 }
@@ -157,7 +147,7 @@ export interface RelaxyBlacklistState {
 }
 
 export interface RelaxyData {
-    platform: "win" | "unix";
+    platform: 'win' | 'unix';
     allUsersCache: unknown | null;
 
     ready: boolean;
@@ -253,7 +243,6 @@ export default class Relaxy extends Discord.Client {
     _adsrTripped?: boolean;
     _settingsConverging?: boolean;
 
-
     mkdir?: (...args: unknown[]) => unknown;
     unlink?: (...args: unknown[]) => unknown;
     readDir?: (...args: unknown[]) => unknown;
@@ -271,7 +260,6 @@ export default class Relaxy extends Discord.Client {
     set version(v: string);
 
     isOwner(idOrUser: Snowflake | Discord.User): boolean;
-
 
     loadModules(): Promise<boolean>;
 
@@ -295,13 +283,11 @@ export default class Relaxy extends Discord.Client {
 
     deleteSlashCommands(): Promise<void>;
 
-
     hotPatchSelf(...args: unknown[]): Promise<unknown>;
 
     hotReloadLog(...args: unknown[]): unknown;
 
     hotReloadTypes(...args: unknown[]): Promise<unknown>;
-
 
     save(guildId: Snowflake, ...changes: DocumentChange[]): Promise<void>;
 
@@ -323,7 +309,6 @@ export default class Relaxy extends Discord.Client {
 
     cacheFor(...args: unknown[]): unknown;
 
-
     noteForumRejection(...args: unknown[]): unknown;
 
     takeForumRejection(...args: unknown[]): unknown;
@@ -335,22 +320,25 @@ export default class Relaxy extends Discord.Client {
         actor?: Snowflake | Discord.User | null
     ): Promise<unknown>;
 
-
     print(data: string | object): void;
 
     log(level: LogLevel, ...items: unknown[]): void;
 
     throttleLog(...args: unknown[]): unknown;
 
-    clog(message: string, title?: string, type?: string | null, overwrite?: unknown, additional?: unknown): Promise<unknown>;
+    clog(
+        message: string,
+        title?: string,
+        type?: string | null,
+        overwrite?: unknown,
+        additional?: unknown
+    ): Promise<unknown>;
 
     trueRelaxyClusterId(...args: unknown[]): unknown;
-
 
     setActivity(text: string, type: string): void;
 
     setStatus(status: unknown, reclustering?: boolean): Promise<void>;
-
 
     getUser(userId: Snowflake | number): Promise<Discord.User | null>;
 
@@ -363,7 +351,6 @@ export default class Relaxy extends Discord.Client {
     ): Promise<Discord.Message | null>;
 
     getForum(channelId: Snowflake, guildId: Snowflake): Promise<unknown | null>;
-
 
     send(channel: Discord.BaseChannel | Discord.User | number, ...content: Sendable[]): Promise<unknown>;
 
@@ -386,7 +373,6 @@ export default class Relaxy extends Discord.Client {
     unreact(message: Discord.Message, ...emojis: (string | string[])[]): Promise<PromiseSettledResult<unknown>[]>;
 
     removeReaction(...reactions: unknown[]): Promise<PromiseSettledResult<unknown>[]>;
-
 
     qEmbed(...args: unknown[]): unknown;
 

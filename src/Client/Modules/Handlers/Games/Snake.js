@@ -1,10 +1,9 @@
 'use strict';
 
 import Discord from 'discord.js';
-import Relaxy  from '../../../Relaxy.js';
+import Relaxy from '../../../Relaxy.js';
 
-export default class Snake
-{
+export default class Snake {
     static WIDTH = 15;
 
     static HEIGHT = 10;
@@ -18,15 +17,15 @@ export default class Snake
     static FOOD = '🍎';
 
     static DIRECTIONS = {
-        up:    {
+        up: {
             x: 0,
             y: -1
         },
-        down:  {
+        down: {
             x: 0,
             y: 1
         },
-        left:  {
+        left: {
             x: -1,
             y: 0
         },
@@ -36,8 +35,7 @@ export default class Snake
         }
     };
 
-    constructor(client, message, guild)
-    {
+    constructor(client, message, guild) {
         this.client = client;
         this.message = message;
         this.guild = guild;
@@ -62,44 +60,34 @@ export default class Snake
         this.start();
     }
 
-    isInSnake(pos)
-    {
-        return this.snake.some(part => part.x === pos.x && part.y === pos.y);
+    isInSnake(pos) {
+        return this.snake.some((part) => part.x === pos.x && part.y === pos.y);
     }
 
-    newApple()
-    {
-        do
-        {
+    newApple() {
+        do {
             this.apple = {
                 x: Math.floor(Math.random() * Snake.WIDTH),
                 y: Math.floor(Math.random() * Snake.HEIGHT)
             };
-        }
-        while (this.isInSnake(this.apple));
+        } while (this.isInSnake(this.apple));
     }
 
-    boardString()
-    {
+    boardString() {
         let str = '';
 
-        for (let y = 0; y < Snake.HEIGHT; y++)
-        {
-            for (let x = 0; x < Snake.WIDTH; x++)
-            {
-                if (x === this.apple.x && y === this.apple.y)
-                {
+        for (let y = 0; y < Snake.HEIGHT; y++) {
+            for (let x = 0; x < Snake.WIDTH; x++) {
+                if (x === this.apple.x && y === this.apple.y) {
                     str += Snake.FOOD;
-                }
-                else if (this.isInSnake({
-                    x,
-                    y
-                }))
-                {
+                } else if (
+                    this.isInSnake({
+                        x,
+                        y
+                    })
+                ) {
                     str += Snake.BODY;
-                }
-                else
-                {
+                } else {
                     str += Snake.TILE;
                 }
             }
@@ -110,48 +98,50 @@ export default class Snake
         return str;
     }
 
-    embed(title = null)
-    {
+    embed(title = null) {
         return new Discord.EmbedBuilder()
             .setColor(this.client.data.embedColor)
             .setTitle(title ?? `Snake - Score: ${this.score}`)
             .setDescription(this.boardString());
     }
 
-    controls(over = false)
-    {
-        const pad = key => new Discord.ButtonBuilder()
-            .setCustomId(`snakeui_pad_${key}`)
-            .setLabel('\u200b')
-            .setStyle(Discord.ButtonStyle.Secondary)
-            .setDisabled(true);
+    controls(over = false) {
+        const pad = (key) =>
+            new Discord.ButtonBuilder()
+                .setCustomId(`snakeui_pad_${key}`)
+                .setLabel('\u200b')
+                .setStyle(Discord.ButtonStyle.Secondary)
+                .setDisabled(true);
 
-        const dir = (key, emoji) => new Discord.ButtonBuilder()
-            .setCustomId(`snakeui_${key}`)
-            .setEmoji(emoji)
-            .setStyle(Discord.ButtonStyle.Primary)
-            .setDisabled(over);
+        const dir = (key, emoji) =>
+            new Discord.ButtonBuilder()
+                .setCustomId(`snakeui_${key}`)
+                .setEmoji(emoji)
+                .setStyle(Discord.ButtonStyle.Primary)
+                .setDisabled(over);
 
         return [
             new Discord.ActionRowBuilder().addComponents(pad(0), dir('up', '⬆️'), pad(1)),
-            new Discord.ActionRowBuilder().addComponents(dir('left', '⬅️'), new Discord.ButtonBuilder()
-                .setCustomId('snakeui_stop')
-                .setEmoji('⏹️')
-                .setStyle(Discord.ButtonStyle.Danger)
-                .setDisabled(over), dir('right', '➡️')),
+            new Discord.ActionRowBuilder().addComponents(
+                dir('left', '⬅️'),
+                new Discord.ButtonBuilder()
+                    .setCustomId('snakeui_stop')
+                    .setEmoji('⏹️')
+                    .setStyle(Discord.ButtonStyle.Danger)
+                    .setDisabled(over),
+                dir('right', '➡️')
+            ),
             new Discord.ActionRowBuilder().addComponents(pad(2), dir('down', '⬇️'), pad(3))
         ];
     }
 
-    async start()
-    {
+    async start() {
         const channelIds = this.client.data.snakeGameChannelIds;
 
-        if (channelIds.includes(this.message.channel.id))
-        {
+        if (channelIds.includes(this.message.channel.id)) {
             return this.client.send(this.message.channel, null, [
                 {
-                    color:       this.client.data.embedColor,
+                    color: this.client.data.embedColor,
                     description: `A snake game is already running in ${this.message.channel}.`
                 }
             ]);
@@ -161,10 +151,11 @@ export default class Snake
 
         this.newApple();
 
-        this.boardMessage = await this.client.send(this.message.channel, null, [this.embed()], [], [], this.controls()).catch(() => null);
+        this.boardMessage = await this.client
+            .send(this.message.channel, null, [this.embed()], [], [], this.controls())
+            .catch(() => null);
 
-        if (!this.boardMessage)
-        {
+        if (!this.boardMessage) {
             this.cleanup();
 
             return this.client.qEmbed('Could not start the game here.', this.message);
@@ -172,25 +163,22 @@ export default class Snake
 
         this.collector = this.boardMessage.createMessageComponentCollector({
             componentType: Discord.ComponentType.Button,
-            idle:          Snake.IDLE_MS,
-            filter:        pressed => pressed.user.id === this.message.author.id
+            idle: Snake.IDLE_MS,
+            filter: (pressed) => pressed.user.id === this.message.author.id
         });
 
-        this.collector.on('collect', pressed => this.onPress(pressed));
+        this.collector.on('collect', (pressed) => this.onPress(pressed));
         this.collector.on('end', (_collected, reason) => this.onEnd(reason));
     }
 
-    async onPress(pressed)
-    {
-        if (pressed.customId === 'snakeui_stop')
-        {
+    async onPress(pressed) {
+        if (pressed.customId === 'snakeui_stop') {
             return this.endGame(pressed);
         }
 
         const direction = Snake.DIRECTIONS[pressed.customId.split('_')[1]];
 
-        if (!direction)
-        {
+        if (!direction) {
             return pressed.deferUpdate().catch(this.client.swallow('Snake: deferUpdate'));
         }
 
@@ -200,50 +188,44 @@ export default class Snake
             y: (head.y + direction.y + Snake.HEIGHT) % Snake.HEIGHT
         };
 
-        if (this.snake.length > 1 && this.snake[1].x === next.x && this.snake[1].y === next.y)
-        {
+        if (this.snake.length > 1 && this.snake[1].x === next.x && this.snake[1].y === next.y) {
             return pressed.deferUpdate().catch(this.client.swallow('Snake: deferUpdate'));
         }
 
-        if (this.isInSnake(next))
-        {
+        if (this.isInSnake(next)) {
             return this.endGame(pressed);
         }
 
         this.snake.unshift(next);
 
-        if (next.x === this.apple.x && next.y === this.apple.y)
-        {
+        if (next.x === this.apple.x && next.y === this.apple.y) {
             this.score++;
             this.snakeLength++;
             this.newApple();
         }
 
-        if (this.snake.length > this.snakeLength)
-        {
+        if (this.snake.length > this.snakeLength) {
             this.snake.pop();
         }
 
-        return pressed.update({
-            embeds:     [this.embed()],
-            components: this.controls()
-        }).catch(this.client.swallow('Snake: update'));
+        return pressed
+            .update({
+                embeds: [this.embed()],
+                components: this.controls()
+            })
+            .catch(this.client.swallow('Snake: update'));
     }
 
-    onEnd(reason)
-    {
-        if (this.ended || reason === 'ended')
-        {
+    onEnd(reason) {
+        if (this.ended || reason === 'ended') {
             return;
         }
 
         return this.endGame(null);
     }
 
-    async endGame(pressed)
-    {
-        if (this.ended)
-        {
+    async endGame(pressed) {
+        if (this.ended) {
             return pressed?.deferUpdate?.().catch(this.client.swallow('Snake: deferUpdate'));
         }
 
@@ -255,53 +237,55 @@ export default class Snake
 
         await this.award(exp, money);
 
-        const overEmbed = this.embed(`Game over! Score: ${this.score} - earned ${exp} xp and ${money} money.`)
-                              .setImage(this.client.cdn.snake);
+        const overEmbed = this.embed(`Game over! Score: ${this.score} - earned ${exp} xp and ${money} money.`).setImage(
+            this.client.cdn.snake
+        );
 
-        if (pressed)
-        {
-            await pressed.update({
-                embeds:     [overEmbed],
-                components: this.controls(true)
-            }).catch(this.client.swallow('Snake: update'));
-        }
-        else if (this.boardMessage)
-        {
-            await this.client.edit(this.boardMessage, null, [overEmbed], [], this.controls(true)).catch(this.client.swallow('Snake: edit'));
+        if (pressed) {
+            await pressed
+                .update({
+                    embeds: [overEmbed],
+                    components: this.controls(true)
+                })
+                .catch(this.client.swallow('Snake: update'));
+        } else if (this.boardMessage) {
+            await this.client
+                .edit(this.boardMessage, null, [overEmbed], [], this.controls(true))
+                .catch(this.client.swallow('Snake: edit'));
         }
 
-        if (this.collector && !this.collector.ended)
-        {
+        if (this.collector && !this.collector.ended) {
             this.collector.stop('ended');
         }
     }
 
-    async award(exp, money)
-    {
-        if (exp <= 0 && money <= 0)
-        {
+    async award(exp, money) {
+        if (exp <= 0 && money <= 0) {
             return;
         }
 
         const profile = await this.client.module.database.User(this.message.author.id).catch(() => null);
 
-        if (profile)
-        {
-            this.client.saveProfile(profile.id, {
-                alter: 'xp',
-                value: (profile.xp ?? 0) + exp
-            }, {
-                alter: 'm',
-                value: (profile.m ?? 0) + money
-            });
+        if (profile) {
+            this.client.saveProfile(
+                profile.id,
+                {
+                    alter: 'xp',
+                    value: (profile.xp ?? 0) + exp
+                },
+                {
+                    alter: 'm',
+                    value: (profile.m ?? 0) + money
+                }
+            );
         }
 
-        if (this.guild.lv?.on)
-        {
-            const member = await this.client.module.database.Member(this.message.author.id, this.message.guild.id).catch(() => null);
+        if (this.guild.lv?.on) {
+            const member = await this.client.module.database
+                .Member(this.message.author.id, this.message.guild.id)
+                .catch(() => null);
 
-            if (member)
-            {
+            if (member) {
                 this.client.saveMember(this.message.guild.id, this.message.author.id, {
                     alter: 'xp',
                     value: (member.xp ?? 0) + exp
@@ -310,13 +294,11 @@ export default class Snake
         }
     }
 
-    cleanup()
-    {
+    cleanup() {
         const channelIds = this.client.data.snakeGameChannelIds;
         const index = channelIds.indexOf(this.message.channel.id);
 
-        if (index !== -1)
-        {
+        if (index !== -1) {
             channelIds.splice(index, 1);
         }
     }

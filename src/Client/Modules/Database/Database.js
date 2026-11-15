@@ -3,156 +3,140 @@
 import path from 'path';
 import time from 'pretty-ms';
 
-import {
-    parentPort,
-    Worker
-} from 'worker_threads';
+import { parentPort, Worker } from 'worker_threads';
 
-import Relaxy         from '../../Relaxy.js';
-import Server         from './Blueprints/Server.js';
-import GuildConfig    from './Blueprints/GuildConfig.js';
-import Member         from './Blueprints/Member.js';
-import Warning        from './Blueprints/Warning.js';
-import Mute           from './Blueprints/Mute.js';
-import Profile        from './Blueprints/Profile.js';
-import Reminder       from './Blueprints/Reminder.js';
-import HeartBoard     from './Blueprints/HeartBoard.js';
-import TicketSystem   from './Blueprints/TicketSystem.js';
-import ForumChannel   from './Blueprints/ForumChannel.js';
-import ReactionRole   from './Blueprints/ReactionRole.js';
+import Relaxy from '../../Relaxy.js';
+import Server from './Blueprints/Server.js';
+import GuildConfig from './Blueprints/GuildConfig.js';
+import Member from './Blueprints/Member.js';
+import Warning from './Blueprints/Warning.js';
+import Mute from './Blueprints/Mute.js';
+import Profile from './Blueprints/Profile.js';
+import Reminder from './Blueprints/Reminder.js';
+import HeartBoard from './Blueprints/HeartBoard.js';
+import TicketSystem from './Blueprints/TicketSystem.js';
+import ForumChannel from './Blueprints/ForumChannel.js';
+import ReactionRole from './Blueprints/ReactionRole.js';
 import HeartBoardPost from './Blueprints/HeartBoardPost.js';
-import Case           from './Blueprints/Case.js';
+import Case from './Blueprints/Case.js';
 
-import Lodash          from 'lodash';
+import Lodash from 'lodash';
 import RegistryManager from './RegistryManager.js';
-import {
-    modelToSchema,
-    schemas as SCHEMA_SPECS
-}                      from './DatabaseDefaults.js';
-import {
-    reconcile,
-    stripDefaults,
-    isPureDefault
-}                      from './SchemaEngine.js';
-import {
-    isNetworkError,
-    NetworkErrorThrottle
-}                      from '../../../Utils/NetworkErrors.js';
+import { modelToSchema, schemas as SCHEMA_SPECS } from './DatabaseDefaults.js';
+import { reconcile, stripDefaults, isPureDefault } from './SchemaEngine.js';
+import { isNetworkError, NetworkErrorThrottle } from '../../../Utils/NetworkErrors.js';
 
-const schemaToModel = Object.fromEntries(Object.entries(modelToSchema).map(([m, k]) => [
-    k,
-    m
-]));
+const schemaToModel = Object.fromEntries(Object.entries(modelToSchema).map(([m, k]) => [k, m]));
 
 export const MIN_MAX_WARNING_TIER = 3;
 
 const MAX_TIER_TTL_MS = 5 * 60 * 1000;
 
 const ROUTE = {
-    server:       {
-        cache:    'servers',
-        key:      i => i.id,
-        filter:   i => ({ id: i.id }),
-        identity: i => ({ id: i.id }),
+    server: {
+        cache: 'servers',
+        key: (i) => i.id,
+        filter: (i) => ({ id: i.id }),
+        identity: (i) => ({ id: i.id }),
         registry: true
     },
-    guildConfig:  {
-        cache:    'guildConfigs',
-        key:      i => i.g,
-        filter:   i => ({ g: i.g }),
-        identity: i => ({ g: i.g })
+    guildConfig: {
+        cache: 'guildConfigs',
+        key: (i) => i.g,
+        filter: (i) => ({ g: i.g }),
+        identity: (i) => ({ g: i.g })
     },
-    member:       {
-        cache:    'members',
-        key:      i => `${i.g}:${i.id}`,
-        filter:   i => ({
-            g:  i.g,
+    member: {
+        cache: 'members',
+        key: (i) => `${i.g}:${i.id}`,
+        filter: (i) => ({
+            g: i.g,
             id: i.id
         }),
-        identity: i => ({
-            g:  i.g,
+        identity: (i) => ({
+            g: i.g,
             id: i.id
         })
     },
-    profile:      {
-        cache:    'users',
-        key:      i => i.id,
-        filter:   i => ({ id: i.id }),
-        identity: i => ({ id: i.id })
+    profile: {
+        cache: 'users',
+        key: (i) => i.id,
+        filter: (i) => ({ id: i.id }),
+        identity: (i) => ({ id: i.id })
     },
-    warning:      {
-        cache:    'warnings',
-        key:      i => `${i.g}:${i.u}`,
-        filter:   i => ({
+    warning: {
+        cache: 'warnings',
+        key: (i) => `${i.g}:${i.u}`,
+        filter: (i) => ({
             g: i.g,
             u: i.u
         }),
-        identity: i => ({
+        identity: (i) => ({
             g: i.g,
             u: i.u
         })
     },
-    mute:         {
-        cache:    'mutes',
-        key:      i => `${i.g}:${i.u}`,
-        filter:   i => ({
+    mute: {
+        cache: 'mutes',
+        key: (i) => `${i.g}:${i.u}`,
+        filter: (i) => ({
             g: i.g,
             u: i.u
         }),
-        identity: i => ({
+        identity: (i) => ({
             g: i.g,
             u: i.u
         })
     },
     reactionRole: {
-        cache:    'reactionRoles',
-        key:      i => i.g,
-        filter:   i => ({ g: i.g }),
-        identity: i => ({ g: i.g })
+        cache: 'reactionRoles',
+        key: (i) => i.g,
+        filter: (i) => ({ g: i.g }),
+        identity: (i) => ({ g: i.g })
     },
 
-    forumChannel:   {
-        cache:    'forum',
-        key:      i => `${i.id}-${i.g}`,
-        filter:   i => ({
+    forumChannel: {
+        cache: 'forum',
+        key: (i) => `${i.id}-${i.g}`,
+        filter: (i) => ({
             id: i.id,
-            g:  i.g
+            g: i.g
         }),
-        identity: i => ({
+        identity: (i) => ({
             id: i.id,
-            g:  i.g
+            g: i.g
         })
     },
-    heartBoard:     {
-        cache:    'heartboards',
-        key:      i => `${i.id}-${i.g}`,
-        filter:   i => ({
+    heartBoard: {
+        cache: 'heartboards',
+        key: (i) => `${i.id}-${i.g}`,
+        filter: (i) => ({
             id: i.id,
-            g:  i.g
+            g: i.g
         }),
-        identity: i => ({
+        identity: (i) => ({
             id: i.id,
-            g:  i.g
+            g: i.g
         })
     },
     heartBoardPost: {
-        cache:    'heartboardPosts',
-        key:      i => i.oid,
-        filter:   i => ({ oid: i.oid }),
-        identity: i => ({ oid: i.oid })
+        cache: 'heartboardPosts',
+        key: (i) => i.oid,
+        filter: (i) => ({ oid: i.oid }),
+        identity: (i) => ({ oid: i.oid })
     },
-    ticketSystem:   {
+    ticketSystem: {
         clientCollection: true,
-        cache:            'ticketSystems',
-        key:              i => `${i.g}${i.c}${i.mid}`,
-        filter:           i => ({
-            g:   i.g,
-            c:   i.c,
+        cache: 'ticketSystems',
+        key: (i) => `${i.g}${i.c}${i.mid}`,
+        filter: (i) => ({
+            g: i.g,
+            c: i.c,
             mid: i.mid
         }),
-        identity:         i => ({
-            g:   i.g,
-            c:   i.c,
+        identity: (i) => ({
+            g: i.g,
+            c: i.c,
             mid: i.mid
         })
     }
@@ -167,10 +151,8 @@ const networkErrorThrottle = new NetworkErrorThrottle();
 
 const SHAPE_WARN_INTERVAL = 60 * 60 * 1000;
 
-export default class DatabaseHandler
-{
-    constructor(client)
-    {
+export default class DatabaseHandler {
+    constructor(client) {
         this.client = client;
 
         this.modelMap = {
@@ -190,17 +172,17 @@ export default class DatabaseHandler
         };
 
         this._cache = {
-            users:             new Map(),
-            forum:             new Map(),
-            members:           new Map(),
-            servers:           new Map(),
-            guildConfigs:      new Map(),
-            warnings:          new Map(),
-            mutes:             new Map(),
-            reactionRoles:     new Map(),
-            heartboards:       new Map(),
-            ticketSystems:     new Map(),
-            heartboardPosts:   new Map(),
+            users: new Map(),
+            forum: new Map(),
+            members: new Map(),
+            servers: new Map(),
+            guildConfigs: new Map(),
+            warnings: new Map(),
+            mutes: new Map(),
+            reactionRoles: new Map(),
+            heartboards: new Map(),
+            ticketSystems: new Map(),
+            heartboardPosts: new Map(),
             correctHeartBoard: new Map()
         };
         this._registries = new Map();
@@ -239,191 +221,154 @@ export default class DatabaseHandler
 
         this.handlerId = `dbHandler-${process.pid}`;
 
-        this.startWorker().catch(e => this.client.log('ERROR', e));
+        this.startWorker().catch((e) => this.client.log('ERROR', e));
     }
 
-    async startWorker()
-    {
+    async startWorker() {
         this.startingWorker = true;
         const dbUri = this.client.config.keys.dbtoken;
         const workerPath = path.resolve(__dirname, 'src/Client/Modules/Workers/DatabaseWorker.js');
 
         this.worker = new Worker(workerPath, {
             workerData: {
-                dbUri:          dbUri,
+                dbUri: dbUri,
                 ownerProcessId: this.handlerId
             }
         });
 
-        this.worker.on('online', () =>
-        {
+        this.worker.on('online', () => {
             this.startingWorker = false;
             this.client.log('DEBUG', `[${this.handlerId}] Database worker is online.`);
 
-            const isReadyInterval = setInterval(async () =>
-            {
-                if (!this.isWorkerReady)
-                {
+            const isReadyInterval = setInterval(async () => {
+                if (!this.isWorkerReady) {
                     return;
                 }
 
                 clearInterval(isReadyInterval);
 
-                await this.sendMessageToWorker('connect', {}).then(() =>
-                {
-                    this.isWorkerReadyToGetMessage = true;
-                    this.client.log('DEBUG', 'Database worker able to receive messages.');
-                }).catch(err =>
-                {
-                    this.client.log('ERROR', 'Database worker failed to connect:', err);
-                    this.isWorkerReady = false;
-                    this.worker = null;
-                    throw err;
-                });
+                await this.sendMessageToWorker('connect', {})
+                    .then(() => {
+                        this.isWorkerReadyToGetMessage = true;
+                        this.client.log('DEBUG', 'Database worker able to receive messages.');
+                    })
+                    .catch((err) => {
+                        this.client.log('ERROR', 'Database worker failed to connect:', err);
+                        this.isWorkerReady = false;
+                        this.worker = null;
+                        throw err;
+                    });
             }, 100);
         });
 
-        this.worker.on('message', message =>
-        {
-            const {
-                messageId,
-                result,
-                error,
-                success,
-                type
-            } = message;
+        this.worker.on('message', (message) => {
+            const { messageId, result, error, success, type } = message;
 
-            if (type === 'ready')
-            {
+            if (type === 'ready') {
                 this.isWorkerReady = true;
                 return this.client.log('DEBUG', `Database worker is ready.`);
             }
 
-            if (messageId === 1 && type === 'success')
-            {
+            if (messageId === 1 && type === 'success') {
                 return this.client.log('DEBUG', 'Database worker is connected.');
             }
 
-            if (type === 'workerLog')
-            {
-                const isBad = [
-                    'ERROR',
-                    'WARN'
-                ].includes(message.level);
-                if ((!this.startingWorker && this.isWorkerReadyToGetMessage) && (this.client.flags.logs.debug || isBad))
-                {
-
+            if (type === 'workerLog') {
+                const isBad = ['ERROR', 'WARN'].includes(message.level);
+                if (!this.startingWorker && this.isWorkerReadyToGetMessage && (this.client.flags.logs.debug || isBad)) {
                     const strError = [
                         message.message,
-                        ...(message.args ?? []).map(a => typeof a === 'string'
-                            ? a
-                            : (a?.stack ?? a?.message ?? String(a)))
+                        ...(message.args ?? []).map((a) =>
+                            typeof a === 'string' ? a : (a?.stack ?? a?.message ?? String(a))
+                        )
                     ].join(' ');
 
-                    if (isNetworkError(strError))
-                    {
-                        const {
-                            print,
-                            suppressed
-                        } = networkErrorThrottle.consider(strError);
+                    if (isNetworkError(strError)) {
+                        const { print, suppressed } = networkErrorThrottle.consider(strError);
                         const count = ++this.client.data.net_issues;
 
-                        if (print)
-                        {
-                            this.client.log('ERROR', `Network issue count: ${count}${NetworkErrorThrottle.note(suppressed)}`, message.message ?? 'Undefined unhandled rejection', ...message.args);
+                        if (print) {
+                            this.client.log(
+                                'ERROR',
+                                `Network issue count: ${count}${NetworkErrorThrottle.note(suppressed)}`,
+                                message.message ?? 'Undefined unhandled rejection',
+                                ...message.args
+                            );
                         }
 
                         this.client.cluster.send({
-                            _type:   this.client.types.messageType.CLIENT_REQUEST,
+                            _type: this.client.types.messageType.CLIENT_REQUEST,
                             variant: 'ni'
                         });
-                    }
-                    else if (isBad)
-                    {
-                        this.client.log('ERROR', `Error count: ${++this.client.data.errors}`, message.message ?? 'Undefined unhandled rejection', ...message.args);
-                    }
-                    else
-                    {
+                    } else if (isBad) {
+                        this.client.log(
+                            'ERROR',
+                            `Error count: ${++this.client.data.errors}`,
+                            message.message ?? 'Undefined unhandled rejection',
+                            ...message.args
+                        );
+                    } else {
                         return this.client.log(message.level, message.message, ...message.args);
                     }
                 }
             }
 
-            if (this.messageCallbacks.has(messageId))
-            {
-                const {
-                    resolve,
-                    reject
-                } = this.messageCallbacks.get(messageId);
+            if (this.messageCallbacks.has(messageId)) {
+                const { resolve, reject } = this.messageCallbacks.get(messageId);
 
                 this.messageCallbacks.delete(messageId);
 
-                if (error)
-                {
+                if (error) {
                     reject(new Error(error.message));
-                }
-                else
-                {
+                } else {
                     resolve(result);
                 }
             }
         });
 
-        this.worker.on('error', err =>
-        {
+        this.worker.on('error', (err) => {
             this.client.log('ERROR', 'Database Worker Error:', err);
 
             this.isWorkerReady = false;
             this.worker = null;
 
-            this.messageCallbacks.forEach(({ reject }, msgId) =>
-            {
+            this.messageCallbacks.forEach(({ reject }, msgId) => {
                 reject(new Error(`Database worker crashed: ${err.message}`));
                 this.messageCallbacks.delete(msgId);
             });
         });
 
-        this.worker.on('exit', code =>
-        {
+        this.worker.on('exit', (code) => {
             this.client.log('ERROR', `Database Worker exited with code ${code}`);
             this.isWorkerReady = false;
             this.worker = null;
 
-            this.messageCallbacks.forEach(({ reject }, msgId) =>
-            {
+            this.messageCallbacks.forEach(({ reject }, msgId) => {
                 reject(new Error(`Database worker exited with code ${code}`));
                 this.messageCallbacks.delete(msgId);
             });
         });
     }
 
-    async sendMessageToWorker(type, data = {})
-    {
-
+    async sendMessageToWorker(type, data = {}) {
         this.client.module?.stats?.count('db.worker');
         this.client.module?.stats?.count(`db.worker.${type}`);
 
-        if (!this.worker || !this.isWorkerReady)
-        {
-            if (this.worker === null)
-            {
+        if (!this.worker || !this.isWorkerReady) {
+            if (this.worker === null) {
                 await this.startWorker();
             }
 
-            await new Promise((resolve, reject) =>
-            {
+            await new Promise((resolve, reject) => {
                 let timeout = 0;
 
-                const waitingToStart = setInterval(() =>
-                {
-                    if (timeout >= 50)
-                    {
+                const waitingToStart = setInterval(() => {
+                    if (timeout >= 50) {
                         clearInterval(waitingToStart);
                         return reject(new Error('Database worker is unavailable and not attempting to start.'));
                     }
 
-                    if (this.startingWorker && (!this.worker || !this.isWorkerReady))
-                    {
+                    if (this.startingWorker && (!this.worker || !this.isWorkerReady)) {
                         return timeout++;
                     }
 
@@ -434,8 +379,7 @@ export default class DatabaseHandler
         }
 
         const messageId = this.nextMessageId++;
-        return new Promise((resolve, reject) =>
-        {
+        return new Promise((resolve, reject) => {
             this.messageCallbacks.set(messageId, {
                 resolve,
                 reject
@@ -446,298 +390,278 @@ export default class DatabaseHandler
                 messageId
             });
 
-            setTimeout(async () =>
-            {
-                if (this.messageCallbacks.has(messageId))
-                {
-                    this.messageCallbacks.delete(messageId);
-                    reject(new Error(`Database worker timed out for message type ${type} with id ${messageId}`));
-                    this.client.log('ERROR',
-                        `Database worker timed out for message type ${type} with id ${messageId}${data?.modelName
-                            ? ` ${data.modelName}`
-                            : ''}${data?.filter
-                            ? ` ${await this.client.stringifyJSON(data.filter)}`
-                            : ''}`);
-                }
-            }, 4 * 60 * 1000);
+            setTimeout(
+                async () => {
+                    if (this.messageCallbacks.has(messageId)) {
+                        this.messageCallbacks.delete(messageId);
+                        reject(new Error(`Database worker timed out for message type ${type} with id ${messageId}`));
+                        this.client.log(
+                            'ERROR',
+                            `Database worker timed out for message type ${type} with id ${messageId}${
+                                data?.modelName ? ` ${data.modelName}` : ''
+                            }${data?.filter ? ` ${await this.client.stringifyJSON(data.filter)}` : ''}`
+                        );
+                    }
+                },
+                4 * 60 * 1000
+            );
 
-            setTimeout(async () =>
-            {
-                if (this.messageCallbacks.has(messageId))
-                {
-                    if (this.client.flags.logs.debug)
-                    {
-                        this.client.log('WARN',
-                            `Database worker taking longer than usual for message type ${type} with id ${messageId}${data?.modelName
-                                ? ` ${data.modelName}`
-                                : ''}${data?.filter
-                                ? ` ${await this.client.stringifyJSON(data.filter)}`
-                                : ''}`);
+            setTimeout(async () => {
+                if (this.messageCallbacks.has(messageId)) {
+                    if (this.client.flags.logs.debug) {
+                        this.client.log(
+                            'WARN',
+                            `Database worker taking longer than usual for message type ${type} with id ${messageId}${
+                                data?.modelName ? ` ${data.modelName}` : ''
+                            }${data?.filter ? ` ${await this.client.stringifyJSON(data.filter)}` : ''}`
+                        );
                     }
                 }
             }, 30 * 1000);
 
-            setTimeout(async () =>
-            {
-                if (this.messageCallbacks.has(messageId))
-                {
-                    if (this.client.flags.logs.debug)
-                    {
-                        this.client.log('WARN',
-                            `Database worker taking A LOT longer than usual for message type ${type} with id ${messageId}${data?.modelName
-                                ? ` ${data.modelName}`
-                                : ''}${data?.filter
-                                ? ` ${await this.client.stringifyJSON(data.filter)}`
-                                : ''}`);
+            setTimeout(async () => {
+                if (this.messageCallbacks.has(messageId)) {
+                    if (this.client.flags.logs.debug) {
+                        this.client.log(
+                            'WARN',
+                            `Database worker taking A LOT longer than usual for message type ${type} with id ${messageId}${
+                                data?.modelName ? ` ${data.modelName}` : ''
+                            }${data?.filter ? ` ${await this.client.stringifyJSON(data.filter)}` : ''}`
+                        );
                     }
                 }
             }, 180 * 1000);
         });
     }
 
-    async aggregateModelData(modelName, pipeline)
-    {
+    async aggregateModelData(modelName, pipeline) {
         const now = Date.now();
 
-        try
-        {
+        try {
             const result = await this.sendMessageToWorker('aggregateModelData', {
                 modelName,
                 pipeline
             });
 
-            if (this.client.flags.logs.debug)
-            {
-                this.client.log(`[${this.handlerId}] Aggregating model data for: ${modelName} | Took: ${time(Date.now() - now)}`);
+            if (this.client.flags.logs.debug) {
+                this.client.log(
+                    `[${this.handlerId}] Aggregating model data for: ${modelName} | Took: ${time(Date.now() - now)}`
+                );
             }
 
             return result;
-        }
-        catch (error)
-        {
+        } catch (error) {
             this.client.log('ERROR', `[${this.handlerId}] Failed to aggregateModelData for ${modelName}:`, error);
             throw error;
         }
     }
 
-    async saveModelData(modelName, docData)
-    {
+    async saveModelData(modelName, docData) {
         const now = Date.now();
 
-        try
-        {
+        try {
             const result = await this.sendMessageToWorker('saveModelData', {
                 modelName,
                 docData
             });
 
-            if (this.client.flags.logs.debug)
-            {
-                this.client.log(`[${this.handlerId}] Saving model data for: ${modelName} | Took: ${time(Date.now() - now)}`);
+            if (this.client.flags.logs.debug) {
+                this.client.log(
+                    `[${this.handlerId}] Saving model data for: ${modelName} | Took: ${time(Date.now() - now)}`
+                );
             }
 
             return result;
-        }
-        catch (error)
-        {
+        } catch (error) {
             this.client.log('ERROR', `[${this.handlerId}] Failed to saveModelData for ${modelName}:`, error);
             throw error;
         }
     }
 
-    async getModelData(modelName, filter, defaults)
-    {
+    async getModelData(modelName, filter, defaults) {
         const now = Date.now();
 
-        try
-        {
+        try {
             const result = await this.sendMessageToWorker('getModelData', {
                 modelName,
                 filter,
                 defaults
             });
 
-            if (this.client.flags.logs.debug)
-            {
-                this.client.log(`[${this.handlerId}] Awaiting single model data for: ${modelName} | Took: ${time(Date.now() - now)}`);
+            if (this.client.flags.logs.debug) {
+                this.client.log(
+                    `[${this.handlerId}] Awaiting single model data for: ${modelName} | Took: ${time(Date.now() - now)}`
+                );
             }
 
             return result;
-        }
-        catch (error)
-        {
-            this.client.log('ERROR', `[${this.handlerId}] Failed to getModelData for ${modelName} with filter ${await this.client.stringifyJSON(filter)}:`, error);
+        } catch (error) {
+            this.client.log(
+                'ERROR',
+                `[${this.handlerId}] Failed to getModelData for ${modelName} with filter ${await this.client.stringifyJSON(filter)}:`,
+                error
+            );
             throw error;
         }
     }
 
-    async getMultipleModelData(modelName, filter = {}, options = {})
-    {
+    async getMultipleModelData(modelName, filter = {}, options = {}) {
         const now = Date.now();
 
-        try
-        {
+        try {
             const result = await this.sendMessageToWorker('getMultipleModelData', {
                 modelName,
                 filter,
                 options
             });
 
-            if (this.client.flags.logs.debug)
-            {
-                this.client.log(`[${this.handlerId}] Awaiting multiple model data for: ${modelName} | Count: ${result
-                    ? (Array.isArray(result)
-                        ? result.length
-                        : 'non-array result')
-                    : 'null'} | Took: ${time(Date.now() - now)}`);
+            if (this.client.flags.logs.debug) {
+                this.client.log(
+                    `[${this.handlerId}] Awaiting multiple model data for: ${modelName} | Count: ${
+                        result ? (Array.isArray(result) ? result.length : 'non-array result') : 'null'
+                    } | Took: ${time(Date.now() - now)}`
+                );
             }
 
             return result;
-        }
-        catch (error)
-        {
-            this.client.log('ERROR', `[${this.handlerId}] Failed to getMultipleModelData for ${modelName} with filter ${await this.client.stringifyJSON(filter)} and options ${await this.client.stringifyJSON(options)}:`, error);
+        } catch (error) {
+            this.client.log(
+                'ERROR',
+                `[${this.handlerId}] Failed to getMultipleModelData for ${modelName} with filter ${await this.client.stringifyJSON(filter)} and options ${await this.client.stringifyJSON(options)}:`,
+                error
+            );
             throw error;
         }
     }
 
-    async bumpStats(guildId, day, deltas)
-    {
+    async bumpStats(guildId, day, deltas) {
         const inc = {};
 
-        for (const [field, n] of Object.entries(deltas ?? {}))
-        {
-            if (Number.isFinite(n) && n > 0)
-            {
+        for (const [field, n] of Object.entries(deltas ?? {})) {
+            if (Number.isFinite(n) && n > 0) {
                 inc[field] = n;
             }
         }
 
-        if (!Object.keys(inc).length)
-        {
+        if (!Object.keys(inc).length) {
             return null;
         }
 
         return this.sendMessageToWorker('updateModel', {
-            modelName:  'Stat',
-            filter:     {
+            modelName: 'Stat',
+            filter: {
                 g: guildId,
                 d: day
             },
             updateData: {
-                $inc:         inc,
+                $inc: inc,
                 $setOnInsert: { v: 1 }
             },
-            options:    { upsert: true }
+            options: { upsert: true }
         });
     }
 
-    async pruneStats(cutoff)
-    {
+    async pruneStats(cutoff) {
         const result = await this.sendMessageToWorker('deleteMultipleModelData', {
             modelName: 'Stat',
-            filter:    { d: { $lt: cutoff } }
+            filter: { d: { $lt: cutoff } }
         });
 
         return result?.deletedCount ?? 0;
     }
 
-    async deleteModelData(modelName, filter)
-    {
+    async deleteModelData(modelName, filter) {
         const now = Date.now();
 
-        try
-        {
+        try {
             const result = await this.sendMessageToWorker('deleteModelData', {
                 modelName,
                 filter
             });
 
-            if (this.client.flags.logs.debug)
-            {
-                this.client.log(`[${this.handlerId}] Deleting single model data for: ${modelName} | Took: ${time(Date.now() - now)}`);
+            if (this.client.flags.logs.debug) {
+                this.client.log(
+                    `[${this.handlerId}] Deleting single model data for: ${modelName} | Took: ${time(Date.now() - now)}`
+                );
             }
 
             return result;
-
-        }
-        catch (error)
-        {
-            this.client.log('ERROR', `[${this.handlerId}] Failed to deleteModelData for ${modelName} with filter ${await this.client.stringifyJSON(filter)}:`, error);
+        } catch (error) {
+            this.client.log(
+                'ERROR',
+                `[${this.handlerId}] Failed to deleteModelData for ${modelName} with filter ${await this.client.stringifyJSON(filter)}:`,
+                error
+            );
             throw error;
         }
     }
 
-    async User(userID)
-    {
+    async User(userID) {
         return this.load('profile', { id: userID });
     }
 
-    async getUsers(item = {})
-    {
+    async getUsers(item = {}) {
         const rows = await this._findManyLean('Profile', item);
-        return (rows ?? []).map(r => reconcile('profile', r, m => this._warn(m)));
+        return (rows ?? []).map((r) => reconcile('profile', r, (m) => this._warn(m)));
     }
 
-    async findAllUsers()
-    {
+    async findAllUsers() {
         const cache = this.client.caches.databaseUsersAll;
-        if (cache)
-        {
+        if (cache) {
             return cache;
         }
 
         return [];
     }
 
-    async Member(userID, guildID)
-    {
+    async Member(userID, guildID) {
         return this.load('member', {
-            g:  guildID,
+            g: guildID,
             id: userID
         });
     }
 
-    async findMembers(guildID)
-    {
+    async findMembers(guildID) {
         const rows = await this._findManyLean('Member', { g: guildID });
-        return (rows ?? []).map(r => reconcile('member', r, m => this._warn(m)));
+        return (rows ?? []).map((r) => reconcile('member', r, (m) => this._warn(m)));
     }
 
-    async findMembersByName(guildID, names)
-    {
-        const wanted = [...new Set((names ?? []).map(name => String(name ?? '').trim()).filter(Boolean))];
+    async findMembersByName(guildID, names) {
+        const wanted = [...new Set((names ?? []).map((name) => String(name ?? '').trim()).filter(Boolean))];
 
-        if (!guildID || !wanted.length)
-        {
+        if (!guildID || !wanted.length) {
             return [];
         }
 
-        const rows = await this._findManyLean('Member', {
-            g:      guildID,
-            'nh.n': { $in: wanted.map(name => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')) }
-        }, {
-            projection: {
-                id: 1,
-                nh: 1
+        const rows = await this._findManyLean(
+            'Member',
+            {
+                g: guildID,
+                'nh.n': {
+                    $in: wanted.map((name) => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'))
+                }
+            },
+            {
+                projection: {
+                    id: 1,
+                    nh: 1
+                }
             }
-        });
+        );
 
-        return (rows ?? []).filter(row => row?.id).map(row => ({
-            id: String(row.id),
-            nh: Array.isArray(row.nh)
-                    ? row.nh
-                    : []
-        }));
+        return (rows ?? [])
+            .filter((row) => row?.id)
+            .map((row) => ({
+                id: String(row.id),
+                nh: Array.isArray(row.nh) ? row.nh : []
+            }));
     }
 
-    async Guild(guildId)
-    {
+    async Guild(guildId) {
         return this.getGuild(guildId);
     }
 
-    async deleteGuild(guildId)
-    {
+    async deleteGuild(guildId) {
         this._cache.servers.delete(guildId);
         this._cache.guildConfigs.delete(guildId);
         this._registries.delete(guildId);
@@ -746,72 +670,35 @@ export default class DatabaseHandler
     }
 
     static GUILD_SCOPED = Object.freeze([
-        [
-            'Server',
-            'id'
-        ],
-        [
-            'GuildConfig',
-            'g'
-        ],
-        [
-            'Member',
-            'g'
-        ],
-        [
-            'Warning',
-            'g'
-        ],
-        [
-            'Mute',
-            'g'
-        ],
-        [
-            'HeartBoard',
-            'g'
-        ],
-        [
-            'HeartBoardPost',
-            'g'
-        ],
-        [
-            'ForumChannel',
-            'g'
-        ],
-        [
-            'TicketSystem',
-            'g'
-        ],
-        [
-            'ReactionRole',
-            'g'
-        ],
-        [
-            'Case',
-            'g'
-        ]
+        ['Server', 'id'],
+        ['GuildConfig', 'g'],
+        ['Member', 'g'],
+        ['Warning', 'g'],
+        ['Mute', 'g'],
+        ['HeartBoard', 'g'],
+        ['HeartBoardPost', 'g'],
+        ['ForumChannel', 'g'],
+        ['TicketSystem', 'g'],
+        ['ReactionRole', 'g'],
+        ['Case', 'g']
     ]);
 
-    async purgeGuild(guildId)
-    {
-        if (!guildId || typeof guildId !== 'string')
-        {
+    async purgeGuild(guildId) {
+        if (!guildId || typeof guildId !== 'string') {
             throw new Error(`purgeGuild requires a guild id, got "${guildId}".`);
         }
 
         const deleted = {};
 
-        for (const [model, key] of DatabaseHandler.GUILD_SCOPED)
-        {
+        for (const [model, key] of DatabaseHandler.GUILD_SCOPED) {
             const result = await this.sendMessageToWorker('deleteMultipleModelData', {
                 modelName: model,
-                filter:    { [key]: guildId }
+                filter: { [key]: guildId }
             });
 
             const count = result?.deletedCount ?? 0;
 
-            if (count > 0)
-            {
+            if (count > 0) {
                 deleted[model] = count;
             }
         }
@@ -822,47 +709,19 @@ export default class DatabaseHandler
         this._registries.delete(guildId);
 
         for (const [name, cache] of [
-            [
-                'members',
-                this._cache.members
-            ],
-            [
-                'warnings',
-                this._cache.warnings
-            ],
-            [
-                'mutes',
-                this._cache.mutes
-            ],
-            [
-                'heartboards',
-                this._cache.heartboards
-            ],
-            [
-                'ticketSystems',
-                this._cache.ticketSystems
-            ],
-            [
-                'heartboardPosts',
-                this._cache.heartboardPosts
-            ],
-            [
-                'forum',
-                this._cache.forum
-            ],
-            [
-                'correctHeartBoard',
-                this._cache.correctHeartBoard
-            ]
-        ])
-        {
+            ['members', this._cache.members],
+            ['warnings', this._cache.warnings],
+            ['mutes', this._cache.mutes],
+            ['heartboards', this._cache.heartboards],
+            ['ticketSystems', this._cache.ticketSystems],
+            ['heartboardPosts', this._cache.heartboardPosts],
+            ['forum', this._cache.forum],
+            ['correctHeartBoard', this._cache.correctHeartBoard]
+        ]) {
             void name;
 
-            for (const [cacheKey, value] of cache)
-            {
-
-                if (value?.g === guildId || String(cacheKey).includes(guildId))
-                {
+            for (const [cacheKey, value] of cache) {
+                if (value?.g === guildId || String(cacheKey).includes(guildId)) {
                     cache.delete(cacheKey);
                 }
             }
@@ -872,20 +731,12 @@ export default class DatabaseHandler
     }
 
     static USER_SCOPED = Object.freeze([
-        [
-            'Profile',
-            'id'
-        ],
-        [
-            'Reminder',
-            'u'
-        ]
+        ['Profile', 'id'],
+        ['Reminder', 'u']
     ]);
 
-    async purgeUser(userId)
-    {
-        if (!userId || typeof userId !== 'string')
-        {
+    async purgeUser(userId) {
+        if (!userId || typeof userId !== 'string') {
             throw new Error(`purgeUser requires a user id, got "${userId}".`);
         }
 
@@ -897,17 +748,15 @@ export default class DatabaseHandler
 
         const deleted = {};
 
-        for (const [model, field] of DatabaseHandler.USER_SCOPED)
-        {
+        for (const [model, field] of DatabaseHandler.USER_SCOPED) {
             const result = await this.sendMessageToWorker('deleteMultipleModelData', {
                 modelName: model,
-                filter:    { [field]: userId }
+                filter: { [field]: userId }
             });
 
             const count = result?.deletedCount ?? 0;
 
-            if (count > 0)
-            {
+            if (count > 0) {
                 deleted[model] = count;
             }
         }
@@ -917,8 +766,7 @@ export default class DatabaseHandler
         return deleted;
     }
 
-    dropUser(userId)
-    {
+    dropUser(userId) {
         const key = `profile:${userId}`;
 
         clearTimeout(this._flushTimers[key]);
@@ -928,25 +776,21 @@ export default class DatabaseHandler
         return this._cache.users.delete(userId);
     }
 
-    dropMembers(guildId, userIds)
-    {
-        if (!guildId || !Array.isArray(userIds))
-        {
+    dropMembers(guildId, userIds) {
+        if (!guildId || !Array.isArray(userIds)) {
             return 0;
         }
 
         let dropped = 0;
 
-        for (const userId of userIds)
-        {
+        for (const userId of userIds) {
             const key = `member:${guildId}:${userId}`;
 
             clearTimeout(this._flushTimers[key]);
             delete this._flushTimers[key];
             this._dirty.delete(key);
 
-            if (this._cache.members.delete(`${guildId}:${userId}`))
-            {
+            if (this._cache.members.delete(`${guildId}:${userId}`)) {
                 dropped++;
             }
         }
@@ -954,52 +798,52 @@ export default class DatabaseHandler
         return dropped;
     }
 
-    async listMemberPresence(guildId)
-    {
-        const rows = await this._findManyLean('Member', { g: guildId }, {
-            projection: {
-                id:  1,
-                lm:  1,
-                _id: 0
+    async listMemberPresence(guildId) {
+        const rows = await this._findManyLean(
+            'Member',
+            { g: guildId },
+            {
+                projection: {
+                    id: 1,
+                    lm: 1,
+                    _id: 0
+                }
             }
-        });
+        );
 
-        return (rows ?? []).map(row => ({
+        return (rows ?? []).map((row) => ({
             id: row.id,
             lm: row.lm ?? 0
         }));
     }
 
-    async setMemberMarks(guildId, userIds, at)
-    {
-        if (!guildId || !Array.isArray(userIds) || userIds.length === 0)
-        {
+    async setMemberMarks(guildId, userIds, at) {
+        if (!guildId || !Array.isArray(userIds) || userIds.length === 0) {
             return 0;
         }
 
-        const update = at > 0
-            ? { $set: { lm: at } }
-            : { $unset: { lm: '' } };
+        const update = at > 0 ? { $set: { lm: at } } : { $unset: { lm: '' } };
 
         let modified = 0;
-        for (let i = 0; i < userIds.length; i += 1000)
-        {
+        for (let i = 0; i < userIds.length; i += 1000) {
             const chunk = userIds.slice(i, i + 1000);
 
-            const result = await this._updateMany('Member', {
-                g:  guildId,
-                id: { $in: chunk }
-            }, update);
+            const result = await this._updateMany(
+                'Member',
+                {
+                    g: guildId,
+                    id: { $in: chunk }
+                },
+                update
+            );
 
             modified += result?.modifiedCount ?? 0;
         }
 
-        for (const userId of userIds)
-        {
+        for (const userId of userIds) {
             const cached = this._cache.members.get(`${guildId}:${userId}`);
 
-            if (cached)
-            {
+            if (cached) {
                 cached.lm = at;
             }
         }
@@ -1007,45 +851,44 @@ export default class DatabaseHandler
         return modified;
     }
 
-    async findDepartedMembers(guildId, cutoff, limit = 500)
-    {
-        const rows = await this._findManyLean('Member', {
-            g:  guildId,
-            lm: {
-                $gt: 0,
-                $lt: cutoff
-            }
-        }, {
-            projection: {
-                id:  1,
-                lm:  1,
-                _id: 0
+    async findDepartedMembers(guildId, cutoff, limit = 500) {
+        const rows = await this._findManyLean(
+            'Member',
+            {
+                g: guildId,
+                lm: {
+                    $gt: 0,
+                    $lt: cutoff
+                }
             },
-            sort:       { lm: 1 },
-            limit
-        });
+            {
+                projection: {
+                    id: 1,
+                    lm: 1,
+                    _id: 0
+                },
+                sort: { lm: 1 },
+                limit
+            }
+        );
 
-        return (rows ?? []).map(row => ({
+        return (rows ?? []).map((row) => ({
             id: row.id,
             lm: row.lm ?? 0
         }));
     }
 
-    async deleteMembers(guildId, userIds)
-    {
-        if (!guildId || !Array.isArray(userIds) || userIds.length === 0)
-        {
+    async deleteMembers(guildId, userIds) {
+        if (!guildId || !Array.isArray(userIds) || userIds.length === 0) {
             return 0;
         }
 
         let deleted = 0;
 
-        for (let i = 0; i < userIds.length; i += 1000)
-        {
+        for (let i = 0; i < userIds.length; i += 1000) {
             const chunk = userIds.slice(i, i + 1000);
 
-            for (const userId of chunk)
-            {
+            for (const userId of chunk) {
                 const key = `member:${guildId}:${userId}`;
 
                 clearTimeout(this._flushTimers[key]);
@@ -1056,8 +899,8 @@ export default class DatabaseHandler
 
             const result = await this.sendMessageToWorker('deleteMultipleModelData', {
                 modelName: 'Member',
-                filter:    {
-                    g:  guildId,
+                filter: {
+                    g: guildId,
                     id: { $in: chunk }
                 }
             });
@@ -1068,29 +911,28 @@ export default class DatabaseHandler
         return deleted;
     }
 
-    async membershipEvidence(userId, liveGuildIds)
-    {
-        const rows = await this._findManyLean('Member', {
-            id: userId,
-            g:  { $in: liveGuildIds }
-        }, {
-            projection: {
-                lm:  1,
-                _id: 0
+    async membershipEvidence(userId, liveGuildIds) {
+        const rows = await this._findManyLean(
+            'Member',
+            {
+                id: userId,
+                g: { $in: liveGuildIds }
+            },
+            {
+                projection: {
+                    lm: 1,
+                    _id: 0
+                }
             }
-        });
+        );
 
         let live = 0;
         let departed = 0;
 
-        for (const row of rows ?? [])
-        {
-            if ((row.lm ?? 0) > 0)
-            {
+        for (const row of rows ?? []) {
+            if ((row.lm ?? 0) > 0) {
                 departed++;
-            }
-            else
-            {
+            } else {
                 live++;
             }
         }
@@ -1101,132 +943,143 @@ export default class DatabaseHandler
         };
     }
 
-    async findDepartedProfiles(cutoff, limit = 500)
-    {
-        const rows = await this._findManyLean('Profile', {
-            lm: {
-                $gt: 0,
-                $lt: cutoff
-            }
-        }, {
-            projection: {
-                id:  1,
-                lm:  1,
-                _id: 0
+    async findDepartedProfiles(cutoff, limit = 500) {
+        const rows = await this._findManyLean(
+            'Profile',
+            {
+                lm: {
+                    $gt: 0,
+                    $lt: cutoff
+                }
             },
-            sort:       { lm: 1 },
-            limit
-        });
+            {
+                projection: {
+                    id: 1,
+                    lm: 1,
+                    _id: 0
+                },
+                sort: { lm: 1 },
+                limit
+            }
+        );
 
-        return (rows ?? []).map(row => ({
+        return (rows ?? []).map((row) => ({
             id: row.id,
             lm: row.lm ?? 0
         }));
     }
 
-    async findUnmarkedProfiles(afterId = '', limit = 500)
-    {
-        const rows = await this._findManyLean('Profile', {
-            id: { $gt: afterId ?? '' },
-            lm: {
-                $in: [
-                    null,
-                    0
-                ]
+    async findUnmarkedProfiles(afterId = '', limit = 500) {
+        const rows = await this._findManyLean(
+            'Profile',
+            {
+                id: { $gt: afterId ?? '' },
+                lm: {
+                    $in: [null, 0]
+                }
+            },
+            {
+                projection: {
+                    id: 1,
+                    _id: 0
+                },
+                sort: { id: 1 },
+                limit
             }
-        }, {
-            projection: {
-                id:  1,
-                _id: 0
-            },
-            sort:       { id: 1 },
-            limit
-        });
+        );
 
-        return (rows ?? []).filter(row => row.id).map(row => ({ id: row.id }));
+        return (rows ?? []).filter((row) => row.id).map((row) => ({ id: row.id }));
     }
 
-    async findLevellingCandidateProfiles(floorXp, afterId = '', limit = 500)
-    {
-        const rows = await this._findManyLean('Profile', {
-            id: { $gt: afterId ?? '' },
-            xp: { $gte: floorXp }
-        }, {
-            projection: {
-                id:  1,
-                xp:  1,
-                lvl: 1,
-                _id: 0
+    async findLevellingCandidateProfiles(floorXp, afterId = '', limit = 500) {
+        const rows = await this._findManyLean(
+            'Profile',
+            {
+                id: { $gt: afterId ?? '' },
+                xp: { $gte: floorXp }
             },
-            sort:       { id: 1 },
-            limit
-        });
+            {
+                projection: {
+                    id: 1,
+                    xp: 1,
+                    lvl: 1,
+                    _id: 0
+                },
+                sort: { id: 1 },
+                limit
+            }
+        );
 
-        return (rows ?? []).filter(row => row.id).map(row => ({
-            id:  row.id,
-            xp:  row.xp ?? 0,
-            lvl: row.lvl ?? 0
-        }));
+        return (rows ?? [])
+            .filter((row) => row.id)
+            .map((row) => ({
+                id: row.id,
+                xp: row.xp ?? 0,
+                lvl: row.lvl ?? 0
+            }));
     }
 
-    async findLevellingCandidateMembers(guildId, floorXp, afterId = '', limit = 500)
-    {
-        const rows = await this._findManyLean('Member', {
-            g:  guildId,
-            id: { $gt: afterId ?? '' },
-            xp: { $gte: floorXp }
-        }, {
-            projection: {
-                id:  1,
-                xp:  1,
-                lvl: 1,
-                _id: 0
+    async findLevellingCandidateMembers(guildId, floorXp, afterId = '', limit = 500) {
+        const rows = await this._findManyLean(
+            'Member',
+            {
+                g: guildId,
+                id: { $gt: afterId ?? '' },
+                xp: { $gte: floorXp }
             },
-            sort:       { id: 1 },
-            limit
-        });
+            {
+                projection: {
+                    id: 1,
+                    xp: 1,
+                    lvl: 1,
+                    _id: 0
+                },
+                sort: { id: 1 },
+                limit
+            }
+        );
 
-        return (rows ?? []).filter(row => row.id).map(row => ({
-            id:  row.id,
-            xp:  row.xp ?? 0,
-            lvl: row.lvl ?? 0
-        }));
+        return (rows ?? [])
+            .filter((row) => row.id)
+            .map((row) => ({
+                id: row.id,
+                xp: row.xp ?? 0,
+                lvl: row.lvl ?? 0
+            }));
     }
 
-    async getGuilds(item = {}, options = {})
-    {
+    async getGuilds(item = {}, options = {}) {
         const rows = await this._findManyLean('Server', item, options);
-        return (rows ?? []).map(r => reconcile('server', r, m => this._warn(m)));
+        return (rows ?? []).map((r) => reconcile('server', r, (m) => this._warn(m)));
     }
 
-    async HeartBoard(channelId, guildId, requirement)
-    {
-        return this._getOrCreate('heartBoard', {
-            id: channelId,
-            g:  guildId
-        }, { rq: requirement ?? 3 });
+    async HeartBoard(channelId, guildId, requirement) {
+        return this._getOrCreate(
+            'heartBoard',
+            {
+                id: channelId,
+                g: guildId
+            },
+            { rq: requirement ?? 3 }
+        );
     }
 
-    async getHeartBoardChannels(item = {})
-    {
+    async getHeartBoardChannels(item = {}) {
         const rows = await this._findManyLean('HeartBoard', item);
-        return (rows ?? []).map(r => reconcile('heartBoard', r, m => this._warn(m)));
+        return (rows ?? []).map((r) => reconcile('heartBoard', r, (m) => this._warn(m)));
     }
 
-    async findHeartBoard(channelId, guildId)
-    {
+    async findHeartBoard(channelId, guildId) {
         const key = `${channelId}-${guildId}`;
-        if (this._cache.heartboards.has(key))
-        {
+        if (this._cache.heartboards.has(key)) {
             return this._cache.heartboards.get(key);
         }
 
         const hb = await this._findOrNull('heartBoard', {
             id: channelId,
-            g:  guildId
+            g: guildId
         });
-        if (!hb)
-        {
+        if (!hb) {
             return null;
         }
 
@@ -1234,34 +1087,28 @@ export default class DatabaseHandler
         return hb;
     }
 
-    async deleteHeartBoard(channelId, guildId)
-    {
+    async deleteHeartBoard(channelId, guildId) {
         this._cache.heartboards.delete(`${channelId}-${guildId}`);
 
-        for (const [key, id] of this._cache.correctHeartBoard)
-        {
-            if (id === channelId && key.startsWith(`${guildId}-`))
-            {
+        for (const [key, id] of this._cache.correctHeartBoard) {
+            if (id === channelId && key.startsWith(`${guildId}-`)) {
                 this._cache.correctHeartBoard.delete(key);
             }
         }
 
         return this._deleteOne('HeartBoard', {
             id: channelId,
-            g:  guildId
+            g: guildId
         });
     }
 
-    async findHeardBoardPost(originalId)
-    {
-        if (this._cache.heartboardPosts.has(originalId))
-        {
+    async findHeardBoardPost(originalId) {
+        if (this._cache.heartboardPosts.has(originalId)) {
             return this._cache.heartboardPosts.get(originalId);
         }
 
         const post = await this._findOrNull('heartBoardPost', { oid: originalId });
-        if (!post)
-        {
+        if (!post) {
             return null;
         }
 
@@ -1269,10 +1116,8 @@ export default class DatabaseHandler
         return post;
     }
 
-    async deleteHeartBoardPost(originalId)
-    {
-        if (!originalId)
-        {
+    async deleteHeartBoardPost(originalId) {
+        if (!originalId) {
             throw new Error(`deleteHeartBoardPost: refusing to delete with oid=${originalId}`);
         }
 
@@ -1284,23 +1129,21 @@ export default class DatabaseHandler
         return this._deleteOne('HeartBoardPost', { oid: originalId });
     }
 
-    async findCorrectHeartBoardChannel(guildId, emojiName, emojiId)
-    {
+    async findCorrectHeartBoardChannel(guildId, emojiName, emojiId) {
         const key = `${guildId}-${emojiName}-${emojiId}`;
 
-        if (this._cache.correctHeartBoard.has(key))
-        {
+        if (this._cache.correctHeartBoard.has(key)) {
             return this.findHeartBoard(this._cache.correctHeartBoard.get(key), guildId);
         }
 
         const rows = await this._findManyLean('HeartBoard', { g: guildId });
-        const boards = (rows ?? []).map(r => reconcile('heartBoard', r, m => this._warn(m)));
-        const correct = boards.filter(ch => ch.em?.[0]?.includes(emojiName) && (emojiId
-            ? ch.em?.[0]?.includes(emojiId)
-            : true))?.[0] ?? null;
+        const boards = (rows ?? []).map((r) => reconcile('heartBoard', r, (m) => this._warn(m)));
+        const correct =
+            boards.filter(
+                (ch) => ch.em?.[0]?.includes(emojiName) && (emojiId ? ch.em?.[0]?.includes(emojiId) : true)
+            )?.[0] ?? null;
 
-        if (!correct?.id)
-        {
+        if (!correct?.id) {
             return null;
         }
 
@@ -1309,34 +1152,28 @@ export default class DatabaseHandler
         return this.findHeartBoard(correct.id, guildId);
     }
 
-    async HeartBoardPost(isEmbed, messageId)
-    {
-        if (this._cache.heartboardPosts.has(messageId))
-        {
+    async HeartBoardPost(isEmbed, messageId) {
+        if (this._cache.heartboardPosts.has(messageId)) {
             return this._cache.heartboardPosts.get(messageId);
         }
 
-        if (this._heartBoardPostInflight.has(messageId))
-        {
+        if (this._heartBoardPostInflight.has(messageId)) {
             return this._heartBoardPostInflight.get(messageId);
         }
 
-        const pending = (async () =>
-        {
+        const pending = (async () => {
             const existing = await this._findOrNull('heartBoardPost', { oid: messageId });
 
-            if (existing)
-            {
+            if (existing) {
                 this._cache.heartboardPosts.set(messageId, existing);
                 return existing;
             }
 
-            if (isEmbed)
-            {
+            if (isEmbed) {
                 return null;
             }
 
-            const post = reconcile('heartBoardPost', null, m => this._warn(m), { oid: messageId });
+            const post = reconcile('heartBoardPost', null, (m) => this._warn(m), { oid: messageId });
             await this._replace('HeartBoardPost', { oid: messageId }, stripDefaults('heartBoardPost', post));
             this._cache.heartboardPosts.set(messageId, post);
 
@@ -1348,133 +1185,125 @@ export default class DatabaseHandler
         return pending;
     }
 
-    async getTicketSystems(item = {})
-    {
+    async getTicketSystems(item = {}) {
         const rows = await this._findManyLean('TicketSystem', item);
-        return (rows ?? []).map(r => reconcile('ticketSystem', r, m => this._warn(m)));
+        return (rows ?? []).map((r) => reconcile('ticketSystem', r, (m) => this._warn(m)));
     }
 
-    async findTicketSystem(channelId, guildId, messageId)
-    {
+    async findTicketSystem(channelId, guildId, messageId) {
         const key = `${guildId}${channelId}${messageId}`;
-        if (this.client.collections.ticketSystems.has(key))
-        {
+        if (this.client.collections.ticketSystems.has(key)) {
             return this.client.collections.ticketSystems.get(key);
         }
 
         const system = await this._findOrNull('ticketSystem', {
-            g:   guildId,
-            c:   channelId,
+            g: guildId,
+            c: channelId,
             mid: messageId
         });
-        if (system)
-        {
+        if (system) {
             this.client.collections.ticketSystems.set(key, system);
         }
 
         return system ?? null;
     }
 
-    async deleteTicketSystem(item)
-    {
+    async deleteTicketSystem(item) {
         return this._deleteOne('TicketSystem', item);
     }
 
-    async TicketingSystem(guildId, channelId, messageId, title)
-    {
+    async TicketingSystem(guildId, channelId, messageId, title) {
         const key = `${guildId}${channelId}${messageId}`;
-        if (this.client.collections.ticketSystems.has(key))
-        {
+        if (this.client.collections.ticketSystems.has(key)) {
             return this.client.collections.ticketSystems.get(key);
         }
 
         const existing = await this._findOrNull('ticketSystem', {
-            g:   guildId,
-            c:   channelId,
+            g: guildId,
+            c: channelId,
             mid: messageId
         });
-        if (existing)
-        {
+        if (existing) {
             this.client.collections.ticketSystems.set(key, existing);
             return existing;
         }
 
-        const doc = reconcile('ticketSystem', null, m => this._warn(m), {
-            g:   guildId,
-            c:   channelId,
+        const doc = reconcile('ticketSystem', null, (m) => this._warn(m), {
+            g: guildId,
+            c: channelId,
             mid: messageId
         });
         doc.ds = `[ĄSPLITTERĄ]color: "#FF69B4", title: "${title}"`;
         doc.fm = {
             placeholder: {
-                '1':    {
+                1: {
                     title: 'Form question 1',
                     style: 'short',
-                    ph:    'Input type - short',
-                    max:   15,
-                    min:   0
+                    ph: 'Input type - short',
+                    max: 15,
+                    min: 0
                 },
-                'req2': {
+                req2: {
                     title: 'Form question 2',
                     style: 'long',
-                    ph:    'Input type - long\nRequired: Yes\nRemember, you can edit all of this later.\nWrite here to proceed.',
-                    max:   1000,
-                    min:   0
+                    ph: 'Input type - long\nRequired: Yes\nRemember, you can edit all of this later.\nWrite here to proceed.',
+                    max: 1000,
+                    min: 0
                 }
             }
         };
         doc.bt = {
             placeholder: {
-                x:          0,
-                y:          0,
-                color:      'blue',
-                title:      'Create Ticket',
+                x: 0,
+                y: 0,
+                color: 'blue',
+                title: 'Create Ticket',
                 modalTitle: 'Placeholder Modal',
-                emoji:      '📥',
-                control:    true,
-                in:         {
+                emoji: '📥',
+                control: true,
+                in: {
                     users: [],
                     roles: []
                 },
-                out:        {
-                    users:    [],
+                out: {
+                    users: [],
                     channels: [channelId]
                 }
             }
         };
 
-        await this._replace('TicketSystem', {
-            g:   guildId,
-            c:   channelId,
-            mid: messageId
-        }, stripDefaults('ticketSystem', doc));
+        await this._replace(
+            'TicketSystem',
+            {
+                g: guildId,
+                c: channelId,
+                mid: messageId
+            },
+            stripDefaults('ticketSystem', doc)
+        );
         this.client.collections.ticketSystems.set(key, doc);
         return doc;
     }
 
-    async deleteForumChannel(channel, guild)
-    {
+    async deleteForumChannel(channel, guild) {
         this._cache.forum.delete(`${channel}-${guild}`);
         return this._deleteOne('ForumChannel', {
             id: channel,
-            g:  guild
+            g: guild
         });
     }
 
-    async findForumChannel(channel, guild)
-    {
+    async findForumChannel(channel, guild) {
         const key = `${channel}-${guild}`;
-        if (this._cache.forum.has(key))
-        {
+        if (this._cache.forum.has(key)) {
             return this._cache.forum.get(key);
         }
 
         const forum = await this._findOrNull('forumChannel', {
             id: channel,
-            g:  guild
+            g: guild
         });
-        if (!forum)
-        {
+        if (!forum) {
             return null;
         }
 
@@ -1482,37 +1311,37 @@ export default class DatabaseHandler
         return forum;
     }
 
-    async findForumChannels(guild)
-    {
+    async findForumChannels(guild) {
         const key = `all-${guild}`;
-        if (this._cache.forum.has(key))
-        {
+        if (this._cache.forum.has(key)) {
             return this._cache.forum.get(key);
         }
 
         const rows = await this._findManyLean('ForumChannel', { g: guild });
-        const forums = (rows ?? []).map(r => reconcile('forumChannel', r, m => this._warn(m)));
+        const forums = (rows ?? []).map((r) => reconcile('forumChannel', r, (m) => this._warn(m)));
         this._cache.forum.set(key, forums);
         return forums;
     }
 
-    async ForumChannel(channel, guild, emoji, roles, pending, approved)
-    {
-        return this._getOrCreate('forumChannel', {
-            id: channel,
-            g:  guild
-        }, {
-            em: emoji,
-            rl: roles ?? [],
-            tg: {
-                p: pending ?? '',
-                a: approved ?? ''
+    async ForumChannel(channel, guild, emoji, roles, pending, approved) {
+        return this._getOrCreate(
+            'forumChannel',
+            {
+                id: channel,
+                g: guild
+            },
+            {
+                em: emoji,
+                rl: roles ?? [],
+                tg: {
+                    p: pending ?? '',
+                    a: approved ?? ''
+                }
             }
-        });
+        );
     }
 
-    _warn(msg)
-    {
+    _warn(msg) {
         this._warnedShapes ??= new Map();
 
         const text = String(msg ?? '');
@@ -1520,14 +1349,11 @@ export default class DatabaseHandler
         const now = Date.now();
         const last = this._warnedShapes.get(key) ?? 0;
 
-        if (now - last < SHAPE_WARN_INTERVAL)
-        {
+        if (now - last < SHAPE_WARN_INTERVAL) {
             return;
         }
-        for (const [seen, at] of this._warnedShapes)
-        {
-            if (now - at >= SHAPE_WARN_INTERVAL)
-            {
+        for (const [seen, at] of this._warnedShapes) {
+            if (now - at >= SHAPE_WARN_INTERVAL) {
                 this._warnedShapes.delete(seen);
             }
         }
@@ -1536,24 +1362,22 @@ export default class DatabaseHandler
         this.client.log('WARN', `[db] ${text}`);
     }
 
-    _findLean(modelName, filter)
-    {
+    _findLean(modelName, filter) {
         return this.sendMessageToWorker('findLean', {
             modelName,
             filter
         });
     }
 
-    _findManyLean(modelName, filter = {}, options = {})
-    {
+    _findManyLean(modelName, filter = {}, options = {}) {
         return this.sendMessageToWorker('findManyLean', {
             modelName,
-            filter, ...options
+            filter,
+            ...options
         });
     }
 
-    _updateMany(modelName, filter, updateData)
-    {
+    _updateMany(modelName, filter, updateData) {
         return this.sendMessageToWorker('updateMultipleModelData', {
             modelName,
             filter,
@@ -1561,8 +1385,7 @@ export default class DatabaseHandler
         });
     }
 
-    _replace(modelName, filter, doc)
-    {
+    _replace(modelName, filter, doc) {
         return this.sendMessageToWorker('replaceUpsert', {
             modelName,
             filter,
@@ -1570,8 +1393,7 @@ export default class DatabaseHandler
         });
     }
 
-    _patch(modelName, filter, set, unset)
-    {
+    _patch(modelName, filter, set, unset) {
         return this.sendMessageToWorker('patchDoc', {
             modelName,
             filter,
@@ -1580,13 +1402,15 @@ export default class DatabaseHandler
         });
     }
 
-    _deleteOne(modelName, filter)
-    {
-        const usable = Object.entries(filter ?? {}).filter(([, value]) => value !== undefined && value !== null && value !== '');
+    _deleteOne(modelName, filter) {
+        const usable = Object.entries(filter ?? {}).filter(
+            ([, value]) => value !== undefined && value !== null && value !== ''
+        );
 
-        if (usable.length === 0)
-        {
-            throw new Error(`_deleteOne(${modelName}): empty filter after dropping blank values (${JSON.stringify(filter)}) - refusing to delete.`);
+        if (usable.length === 0) {
+            throw new Error(
+                `_deleteOne(${modelName}): empty filter after dropping blank values (${JSON.stringify(filter)}) - refusing to delete.`
+            );
         }
 
         return this.sendMessageToWorker('deleteModelData', {
@@ -1595,58 +1419,46 @@ export default class DatabaseHandler
         });
     }
 
-    async _findOrNull(schemaKey, filter)
-    {
+    async _findOrNull(schemaKey, filter) {
         const raw = await this._findLean(schemaToModel[schemaKey], filter);
-        return raw
-            ? reconcile(schemaKey, raw, m => this._warn(m))
-            : null;
+        return raw ? reconcile(schemaKey, raw, (m) => this._warn(m)) : null;
     }
 
-    async _getOrCreate(schemaKey, filter, overrides = {})
-    {
+    async _getOrCreate(schemaKey, filter, overrides = {}) {
         const existing = await this._findOrNull(schemaKey, filter);
-        if (existing)
-        {
+        if (existing) {
             return existing;
         }
 
-        const doc = reconcile(schemaKey, null, m => this._warn(m), filter);
+        const doc = reconcile(schemaKey, null, (m) => this._warn(m), filter);
         Object.assign(doc, overrides);
 
         await this._replace(schemaToModel[schemaKey], filter, stripDefaults(schemaKey, doc));
         return doc;
     }
 
-    _cacheFor(r)
-    {
-        return r.clientCollection
-            ? this.client.collections[r.cache]
-            : this._cache[r.cache];
+    _cacheFor(r) {
+        return r.clientCollection ? this.client.collections[r.cache] : this._cache[r.cache];
     }
 
-    async load(schemaKey, ids)
-    {
+    async load(schemaKey, ids) {
         const r = ROUTE[schemaKey];
 
-        if (!r)
-        {
+        if (!r) {
             throw new Error(`db.load: no route for schema "${schemaKey}"`);
         }
 
         const cache = this._cacheFor(r);
         const key = r.key(ids);
 
-        if (cache.has(key))
-        {
+        if (cache.has(key)) {
             return cache.get(key);
         }
 
         const raw = await this._findLean(schemaToModel[schemaKey], r.filter(ids));
-        const full = reconcile(schemaKey, raw, m => this._warn(m), r.identity(ids));
+        const full = reconcile(schemaKey, raw, (m) => this._warn(m), r.identity(ids));
 
-        if (r.registry)
-        {
+        if (r.registry) {
             this._ensureRegistry(full.id, full);
         }
 
@@ -1655,31 +1467,25 @@ export default class DatabaseHandler
         return full;
     }
 
-    queue(schemaKey, ids, changes)
-    {
+    queue(schemaKey, ids, changes) {
         const r = ROUTE[schemaKey];
         const cache = this._cacheFor(r);
         const key = r.key(ids);
         const obj = cache.get(key);
 
-        if (!obj)
-        {
+        if (!obj) {
             this._warn(`queue before load: ${schemaKey} ${key}`);
             return;
         }
 
-        for (const c of (Array.isArray(changes)
-            ? changes
-            : [changes]))
-        {
+        for (const c of Array.isArray(changes) ? changes : [changes]) {
             Lodash.set(obj, c.path ?? c.alter, c.value);
         }
 
         this._markDirty(schemaKey, r.filter(ids), key, obj);
     }
 
-    _markDirty(schemaKey, filter, key, obj)
-    {
+    _markDirty(schemaKey, filter, key, obj) {
         const k = `${schemaKey}:${key}`;
         this._dirty.set(k, {
             schemaKey,
@@ -1688,15 +1494,13 @@ export default class DatabaseHandler
         });
 
         clearTimeout(this._flushTimers[k]);
-        this._flushTimers[k] = setTimeout(() => this._flush(k).catch(e => this.client.log('ERROR', e)), 200);
+        this._flushTimers[k] = setTimeout(() => this._flush(k).catch((e) => this.client.log('ERROR', e)), 200);
     }
 
-    async _flush(k)
-    {
+    async _flush(k) {
         const entry = this._dirty.get(k);
 
-        if (!entry)
-        {
+        if (!entry) {
             return;
         }
 
@@ -1710,48 +1514,41 @@ export default class DatabaseHandler
         this._flushing ??= new Set();
         this._flushing.add(k);
 
-        try
-        {
+        try {
             await this._replace(schemaToModel[entry.schemaKey], entry.filter, stripped);
-        }
-        finally
-        {
+        } finally {
             this._flushing.delete(k);
         }
 
-        if (this.client.flags.logs.debug)
-        {
-            this.client.log('DEBUG',
-                `[db] flushed ${entry.schemaKey} ${JSON.stringify(entry.filter)}${isPureDefault(entry.schemaKey, entry.obj)
-                    ? ' (pure default)'
-                    : ''}`);
+        if (this.client.flags.logs.debug) {
+            this.client.log(
+                'DEBUG',
+                `[db] flushed ${entry.schemaKey} ${JSON.stringify(entry.filter)}${
+                    isPureDefault(entry.schemaKey, entry.obj) ? ' (pure default)' : ''
+                }`
+            );
         }
     }
 
-    async saveDoc(schemaKey, ids, changes)
-    {
+    async saveDoc(schemaKey, ids, changes) {
         await this.load(schemaKey, ids);
         this.queue(schemaKey, ids, changes);
     }
 
-    async docExists(schemaKey, ids)
-    {
+    async docExists(schemaKey, ids) {
         const r = ROUTE[schemaKey];
 
-        if (!r)
-        {
+        if (!r) {
             throw new Error(`db.docExists: no route for schema "${schemaKey}"`);
         }
 
         return (await this._findLean(schemaToModel[schemaKey], r.filter(ids))) !== null;
     }
 
-    async deleteDoc(schemaKey, ids)
-    {
+    async deleteDoc(schemaKey, ids) {
         const r = ROUTE[schemaKey];
 
-        if (!r)
-        {
+        if (!r) {
             throw new Error(`db.deleteDoc: no route for schema "${schemaKey}"`);
         }
 
@@ -1766,60 +1563,47 @@ export default class DatabaseHandler
         this._cacheFor(r).delete(key);
     }
 
-    async flushAll()
-    {
-        for (const k of [...this._dirty.keys()])
-        {
+    async flushAll() {
+        for (const k of [...this._dirty.keys()]) {
             clearTimeout(this._flushTimers[k]);
-            await this._flush(k).catch(e => this.client.log('ERROR', e));
+            await this._flush(k).catch((e) => this.client.log('ERROR', e));
         }
 
-        for (const guildId of [...this._guildDirty.keys()])
-        {
+        for (const guildId of [...this._guildDirty.keys()]) {
             clearTimeout(this._guildFlushTimers[guildId]);
-            await this._flushGuild(guildId).catch(e => this.client.log('ERROR', e));
+            await this._flushGuild(guildId).catch((e) => this.client.log('ERROR', e));
         }
     }
 
-    _schemaForCache(name)
-    {
-        this._cacheSchemas ??= new Map(Object.entries(ROUTE).map(([schemaKey, route]) => [
-            route.cache,
-            schemaKey
-        ]));
+    _schemaForCache(name) {
+        this._cacheSchemas ??= new Map(Object.entries(ROUTE).map(([schemaKey, route]) => [route.cache, schemaKey]));
 
         return this._cacheSchemas.get(name) ?? null;
     }
 
-    cacheReport()
-    {
+    cacheReport() {
         return Object.entries(this._cache).map(([name, cache]) => ({
             name,
-            size:    cache.size,
+            size: cache.size,
             pending: this._pendingFor(name)
         }));
     }
 
-    _pendingFor(name)
-    {
+    _pendingFor(name) {
         const schemaKey = this._schemaForCache(name);
 
-        if (!schemaKey)
-        {
+        if (!schemaKey) {
             return 0;
         }
 
-        if (name === 'servers' || name === 'guildConfigs')
-        {
+        if (name === 'servers' || name === 'guildConfigs') {
             return this._guildDirty.size;
         }
 
         let pending = 0;
 
-        for (const key of this._dirty.keys())
-        {
-            if (key.startsWith(`${schemaKey}:`))
-            {
+        for (const key of this._dirty.keys()) {
+            if (key.startsWith(`${schemaKey}:`)) {
                 pending++;
             }
         }
@@ -1827,12 +1611,10 @@ export default class DatabaseHandler
         return pending;
     }
 
-    trimCache(name, limit)
-    {
+    trimCache(name, limit) {
         const cache = this._cache[name];
 
-        if (!cache || cache.size <= limit)
-        {
+        if (!cache || cache.size <= limit) {
             return 0;
         }
 
@@ -1841,25 +1623,23 @@ export default class DatabaseHandler
 
         let dropped = 0;
 
-        for (const key of [...cache.keys()])
-        {
-
-            if (cache.size <= limit)
-            {
+        for (const key of [...cache.keys()]) {
+            if (cache.size <= limit) {
                 break;
             }
 
-            if (guildScoped
-                ? this._guildDirty.has(key) || this._flushingGuilds?.has(key)
-                : schemaKey && (this._dirty.has(`${schemaKey}:${key}`) || this._flushing?.has(`${schemaKey}:${key}`)))
-            {
+            if (
+                guildScoped
+                    ? this._guildDirty.has(key) || this._flushingGuilds?.has(key)
+                    : schemaKey &&
+                      (this._dirty.has(`${schemaKey}:${key}`) || this._flushing?.has(`${schemaKey}:${key}`))
+            ) {
                 continue;
             }
 
             cache.delete(key);
 
-            if (name === 'servers')
-            {
+            if (name === 'servers') {
                 this._registries.delete(key);
             }
 
@@ -1869,12 +1649,10 @@ export default class DatabaseHandler
         return dropped;
     }
 
-    _ensureRegistry(guildId, guildObj)
-    {
+    _ensureRegistry(guildId, guildObj) {
         let rm = this._registries.get(guildId);
 
-        if (!rm || rm.array !== guildObj.reg)
-        {
+        if (!rm || rm.array !== guildObj.reg) {
             rm = new RegistryManager(guildObj.reg, () => this._markGuildDirty(guildId, { hot: true }));
             this._registries.set(guildId, rm);
         }
@@ -1882,18 +1660,15 @@ export default class DatabaseHandler
         return rm;
     }
 
-    async registryFor(guildId)
-    {
+    async registryFor(guildId) {
         const guild = await this.getGuild(guildId);
         return this._ensureRegistry(guildId, guild);
     }
 
-    async getGuild(id)
-    {
+    async getGuild(id) {
         const cache = this._cache.servers;
 
-        if (cache.has(id))
-        {
+        if (cache.has(id)) {
             return cache.get(id);
         }
 
@@ -1902,11 +1677,12 @@ export default class DatabaseHandler
             this._findLean('GuildConfig', { g: id })
         ]);
 
-        const hot = reconcile('server', hotRaw, m => this._warn(m), { id });
-        const cold = reconcile('guildConfig', coldRaw, m => this._warn(m), { g: id });
+        const hot = reconcile('server', hotRaw, (m) => this._warn(m), { id });
+        const cold = reconcile('guildConfig', coldRaw, (m) => this._warn(m), { g: id });
 
         const merged = {
-            ...cold, ...hot,
+            ...cold,
+            ...hot,
             id,
             v: hot.v
         };
@@ -1918,21 +1694,20 @@ export default class DatabaseHandler
         return merged;
     }
 
-    getGuildConfig(id)
-    {
+    getGuildConfig(id) {
         return this.getGuild(id);
     }
 
-    async flushGuild(guildId)
-    {
+    async flushGuild(guildId) {
         clearTimeout(this._guildFlushTimers[guildId]);
 
         return this._flushGuild(guildId);
     }
 
-    async reloadGuild(guildId)
-    {
-        await this.flushGuild(guildId).catch(e => this._warn(`reloadGuild(${guildId}): flush failed - ${e?.message ?? e}`));
+    async reloadGuild(guildId) {
+        await this.flushGuild(guildId).catch((e) =>
+            this._warn(`reloadGuild(${guildId}): flush failed - ${e?.message ?? e}`)
+        );
 
         this._cache.servers.delete(guildId);
         this._cache.guildConfigs.delete(guildId);
@@ -1940,8 +1715,7 @@ export default class DatabaseHandler
         return this.getGuild(guildId);
     }
 
-    async flushProfile(userId)
-    {
+    async flushProfile(userId) {
         const k = `profile:${userId}`;
 
         clearTimeout(this._flushTimers[k]);
@@ -1949,15 +1723,12 @@ export default class DatabaseHandler
         return this._flush(k);
     }
 
-    async flushMembers(guildId, userIds)
-    {
-        if (!guildId || !Array.isArray(userIds) || userIds.length === 0)
-        {
+    async flushMembers(guildId, userIds) {
+        if (!guildId || !Array.isArray(userIds) || userIds.length === 0) {
             return;
         }
 
-        for (const userId of userIds)
-        {
+        for (const userId of userIds) {
             const key = `member:${guildId}:${userId}`;
 
             clearTimeout(this._flushTimers[key]);
@@ -1966,39 +1737,31 @@ export default class DatabaseHandler
         }
     }
 
-    async reloadUser(userId)
-    {
-        await this.flushProfile(userId).catch(e => this._warn(`reloadUser(${userId}): flush failed - ${e?.message ?? e}`));
+    async reloadUser(userId) {
+        await this.flushProfile(userId).catch((e) =>
+            this._warn(`reloadUser(${userId}): flush failed - ${e?.message ?? e}`)
+        );
 
         this._cache.users.delete(userId);
 
         return this.User(userId);
     }
 
-    async saveGuild(guildId, changes)
-    {
+    async saveGuild(guildId, changes) {
         const merged = await this.getGuild(guildId);
-        const list = Array.isArray(changes)
-            ? changes
-            : [changes];
+        const list = Array.isArray(changes) ? changes : [changes];
         let hot = false;
         let cold = false;
 
-        for (const c of list)
-        {
+        for (const c of list) {
             const path = String(c.path ?? c.alter);
             const seg = path.split('.')[0];
 
-            if (HOT_KEYS.has(seg))
-            {
+            if (HOT_KEYS.has(seg)) {
                 hot = true;
-            }
-            else if (COLD_KEYS.has(seg))
-            {
+            } else if (COLD_KEYS.has(seg)) {
                 cold = true;
-            }
-            else
-            {
+            } else {
                 this._warn(`saveGuild(${guildId}): unroutable path "${path}"`);
                 continue;
             }
@@ -2012,13 +1775,9 @@ export default class DatabaseHandler
         });
     }
 
-    _markGuildDirty(guildId, {
-        hot = false,
-        cold = false
-    } = {})
-    {
+    _markGuildDirty(guildId, { hot = false, cold = false } = {}) {
         const cur = this._guildDirty.get(guildId) ?? {
-            hot:  false,
+            hot: false,
             cold: false
         };
         cur.hot = cur.hot || hot;
@@ -2026,16 +1785,17 @@ export default class DatabaseHandler
         this._guildDirty.set(guildId, cur);
 
         clearTimeout(this._guildFlushTimers[guildId]);
-        this._guildFlushTimers[guildId] = setTimeout(() => this._flushGuild(guildId).catch(e => this.client.log('ERROR', e)), 200);
+        this._guildFlushTimers[guildId] = setTimeout(
+            () => this._flushGuild(guildId).catch((e) => this.client.log('ERROR', e)),
+            200
+        );
     }
 
-    async _flushGuild(guildId)
-    {
+    async _flushGuild(guildId) {
         const flags = this._guildDirty.get(guildId);
         const merged = this._cache.servers.get(guildId);
 
-        if (!flags || !merged)
-        {
+        if (!flags || !merged) {
             return;
         }
 
@@ -2043,13 +1803,10 @@ export default class DatabaseHandler
 
         const writes = [];
 
-        if (flags.hot)
-        {
+        if (flags.hot) {
             const hotObj = { id: guildId };
-            for (const k of HOT_KEYS)
-            {
-                if (k in merged)
-                {
+            for (const k of HOT_KEYS) {
+                if (k in merged) {
                     hotObj[k] = merged[k];
                 }
             }
@@ -2057,13 +1814,10 @@ export default class DatabaseHandler
             writes.push(this._replace('Server', { id: guildId }, stripDefaults('server', hotObj)));
         }
 
-        if (flags.cold)
-        {
+        if (flags.cold) {
             const coldObj = { g: guildId };
-            for (const k of COLD_KEYS)
-            {
-                if (k in merged)
-                {
+            for (const k of COLD_KEYS) {
+                if (k in merged) {
                     coldObj[k] = merged[k];
                 }
             }
@@ -2074,61 +1828,53 @@ export default class DatabaseHandler
         this._flushingGuilds ??= new Set();
         this._flushingGuilds.add(guildId);
 
-        try
-        {
+        try {
             await Promise.all(writes);
-        }
-        finally
-        {
+        } finally {
             this._flushingGuilds.delete(guildId);
         }
     }
 
-    warningDoc(g, u)
-    {
+    warningDoc(g, u) {
         return this.load('warning', {
             g,
             u
         });
     }
 
-    async warningsOf(g, u)
-    {
+    async warningsOf(g, u) {
         const reg = await this.registryFor(g);
         const doc = await this.warningDoc(g, u);
 
-        return doc.w.map(e => ({
+        return doc.w.map((e) => ({
             reason: reg.deref(e.r) ?? '',
-            tier:   e.t ?? 0,
+            tier: e.t ?? 0,
             author: reg.deref(e.a) ?? '',
-            date:   e.d ?? 0,
-            edits:  e.e ?? []
+            date: e.d ?? 0,
+            edits: e.e ?? []
         }));
     }
 
-    async allWarnings(g)
-    {
+    async allWarnings(g) {
         const reg = await this.registryFor(g);
         const rows = await this._findManyLean('Warning', { g });
 
-        return (rows ?? []).map(doc => ({
+        return (rows ?? []).map((doc) => ({
             u: doc.u,
-            w: (doc.w ?? []).map(e => ({
+            w: (doc.w ?? []).map((e) => ({
                 reason: reg.deref(e.r) ?? '',
-                tier:   e.t ?? 0,
+                tier: e.t ?? 0,
                 author: reg.deref(e.a) ?? '',
-                date:   e.d ?? 0,
-                edits:  e.e ?? []
+                date: e.d ?? 0,
+                edits: e.e ?? []
             }))
         }));
     }
 
-    async guildMaxWarningTier(g)
-    {
+    async guildMaxWarningTier(g) {
         const hit = this._maxTier.get(g);
 
-        if (hit && Date.now() - hit.at < MAX_TIER_TTL_MS)
-        {
+        if (hit && Date.now() - hit.at < MAX_TIER_TTL_MS) {
             return hit.tier;
         }
 
@@ -2136,21 +1882,15 @@ export default class DatabaseHandler
 
         let tier = floor;
 
-        try
-        {
-            for (const entry of await this.allWarnings(g))
-            {
-                for (const warn of entry.w)
-                {
-                    if (typeof warn.tier === 'number' && !isNaN(warn.tier) && warn.tier > tier)
-                    {
+        try {
+            for (const entry of await this.allWarnings(g)) {
+                for (const warn of entry.w) {
+                    if (typeof warn.tier === 'number' && !isNaN(warn.tier) && warn.tier > tier) {
                         tier = warn.tier;
                     }
                 }
             }
-        }
-        catch (error)
-        {
+        } catch (error) {
             this.client.log('WARN', `Could not derive the highest warning tier for ${g}: ${error?.message ?? error}`);
 
             return hit?.tier ?? floor;
@@ -2165,12 +1905,7 @@ export default class DatabaseHandler
         return tier;
     }
 
-    async addWarning(g, u, {
-        reason = 'None.',
-        tier = 0,
-        author = ''
-    } = {})
-    {
+    async addWarning(g, u, { reason = 'None.', tier = 0, author = '' } = {}) {
         const reg = await this.registryFor(g);
         const doc = await this.warningDoc(g, u);
 
@@ -2181,26 +1916,28 @@ export default class DatabaseHandler
             d: Date.now(),
             e: []
         });
-        this._markDirty('warning', {
-            g,
-            u
-        }, `${g}:${u}`, doc);
+        this._markDirty(
+            'warning',
+            {
+                g,
+                u
+            },
+            `${g}:${u}`,
+            doc
+        );
 
-        if (typeof tier === 'number' && !isNaN(tier))
-        {
+        if (typeof tier === 'number' && !isNaN(tier)) {
             const cached = this._maxTier.get(g) ?? {
-                tier:  MIN_MAX_WARNING_TIER,
+                tier: MIN_MAX_WARNING_TIER,
                 floor: MIN_MAX_WARNING_TIER,
-                at:    0
+                at: 0
             };
 
-            if (tier > cached.floor)
-            {
+            if (tier > cached.floor) {
                 cached.floor = tier;
             }
 
-            if (tier > cached.tier)
-            {
+            if (tier > cached.tier) {
                 cached.tier = tier;
             }
 
@@ -2210,64 +1947,68 @@ export default class DatabaseHandler
         return doc.w.length;
     }
 
-    async _settleWarnings(g, u)
-    {
+    async _settleWarnings(g, u) {
         const key = `warning:${g}:${u}`;
 
         clearTimeout(this._flushTimers[key]);
         delete this._flushTimers[key];
 
-        await this._flush(key).catch(e => this._warn(`_settleWarnings(${g}:${u}): flush failed - ${e?.message ?? e}`));
+        await this._flush(key).catch((e) =>
+            this._warn(`_settleWarnings(${g}:${u}): flush failed - ${e?.message ?? e}`)
+        );
 
         this._maxTier.delete(g);
     }
 
-    async setWarnings(g, u, list)
-    {
+    async setWarnings(g, u, list) {
         const reg = await this.registryFor(g);
         const doc = await this.warningDoc(g, u);
 
-        doc.w = (list ?? []).map(w => ({
+        doc.w = (list ?? []).map((w) => ({
             r: reg.ref(w.reason),
             t: w.tier ?? 0,
             a: reg.ref(w.author),
             d: w.date ?? Date.now(),
             e: w.edits ?? []
         }));
-        this._markDirty('warning', {
-            g,
-            u
-        }, `${g}:${u}`, doc);
+        this._markDirty(
+            'warning',
+            {
+                g,
+                u
+            },
+            `${g}:${u}`,
+            doc
+        );
 
         await this._settleWarnings(g, u);
     }
 
-    async clearWarnings(g, u)
-    {
+    async clearWarnings(g, u) {
         const doc = await this.warningDoc(g, u);
         doc.w = [];
-        this._markDirty('warning', {
-            g,
-            u
-        }, `${g}:${u}`, doc);
+        this._markDirty(
+            'warning',
+            {
+                g,
+                u
+            },
+            `${g}:${u}`,
+            doc
+        );
 
         await this._settleWarnings(g, u);
     }
 
-    async clearAllWarnings(g)
-    {
-        for (const key of this._cache.warnings.keys())
-        {
-            if (key.startsWith(`${g}:`))
-            {
+    async clearAllWarnings(g) {
+        for (const key of this._cache.warnings.keys()) {
+            if (key.startsWith(`${g}:`)) {
                 this._cache.warnings.delete(key);
             }
         }
 
-        for (const key of [...this._dirty.keys()])
-        {
-            if (key.startsWith(`warning:${g}:`))
-            {
+        for (const key of [...this._dirty.keys()]) {
+            if (key.startsWith(`warning:${g}:`)) {
                 clearTimeout(this._flushTimers[key]);
                 delete this._flushTimers[key];
                 this._dirty.delete(key);
@@ -2278,14 +2019,12 @@ export default class DatabaseHandler
 
         return this.sendMessageToWorker('deleteMultipleModelData', {
             modelName: 'Warning',
-            filter:    { g }
+            filter: { g }
         });
     }
 
-    async isMuted(g, u)
-    {
-        if (this._cache.mutes.has(`${g}:${u}`))
-        {
+    async isMuted(g, u) {
+        if (this._cache.mutes.has(`${g}:${u}`)) {
             return true;
         }
 
@@ -2295,63 +2034,57 @@ export default class DatabaseHandler
         }));
     }
 
-    async getMutes(g)
-    {
+    async getMutes(g) {
         const reg = await this.registryFor(g);
         const rows = await this._findManyLean('Mute', { g });
 
-        return (rows ?? []).map(m => ({
-            user:    m.u,
-            mod:     reg.deref(m.md) ?? '',
-            exp:     m.ex ?? 0,
-            roles:   reg.derefAll(m.rl ?? []),
-            reason:  reg.deref(m.rs) ?? '',
-            dur:     m.du ?? 0,
+        return (rows ?? []).map((m) => ({
+            user: m.u,
+            mod: reg.deref(m.md) ?? '',
+            exp: m.ex ?? 0,
+            roles: reg.derefAll(m.rl ?? []),
+            reason: reg.deref(m.rs) ?? '',
+            dur: m.du ?? 0,
             channel: reg.deref(m.c) ?? '',
-            at:      m.at ?? 0
+            at: m.at ?? 0
         }));
     }
 
-    async getMute(g, u)
-    {
+    async getMute(g, u) {
         const reg = await this.registryFor(g);
         const m = await this._findLean('Mute', {
             g,
             u
         });
 
-        if (!m)
-        {
+        if (!m) {
             return null;
         }
 
         return {
-            user:    m.u,
-            mod:     reg.deref(m.md) ?? '',
-            exp:     m.ex ?? 0,
-            roles:   reg.derefAll(m.rl ?? []),
-            reason:  reg.deref(m.rs) ?? '',
-            dur:     m.du ?? 0,
+            user: m.u,
+            mod: reg.deref(m.md) ?? '',
+            exp: m.ex ?? 0,
+            roles: reg.derefAll(m.rl ?? []),
+            reason: reg.deref(m.rs) ?? '',
+            dur: m.du ?? 0,
             channel: reg.deref(m.c) ?? '',
-            at:      m.at ?? 0,
-            ban:     m.bn ?? false
+            at: m.at ?? 0,
+            ban: m.bn ?? false
         };
     }
 
-    async dueMutes()
-    {
+    async dueMutes() {
         const rows = await this._findManyLean('Mute', {
             ex: {
-                $gt:  0,
+                $gt: 0,
                 $lte: Date.now()
             }
         });
         const byGuild = new Map();
 
-        for (const m of (rows ?? []))
-        {
-            if (!byGuild.has(m.g))
-            {
+        for (const m of rows ?? []) {
+            if (!byGuild.has(m.g)) {
                 byGuild.set(m.g, []);
             }
 
@@ -2360,23 +2093,21 @@ export default class DatabaseHandler
 
         const out = [];
 
-        for (const [g, list] of byGuild)
-        {
+        for (const [g, list] of byGuild) {
             const reg = await this.registryFor(g);
 
-            for (const m of list)
-            {
+            for (const m of list) {
                 out.push({
                     g,
-                    user:    m.u,
-                    mod:     reg.deref(m.md) ?? '',
-                    exp:     m.ex ?? 0,
-                    roles:   reg.derefAll(m.rl ?? []),
-                    reason:  reg.deref(m.rs) ?? '',
-                    dur:     m.du ?? 0,
+                    user: m.u,
+                    mod: reg.deref(m.md) ?? '',
+                    exp: m.ex ?? 0,
+                    roles: reg.derefAll(m.rl ?? []),
+                    reason: reg.deref(m.rs) ?? '',
+                    dur: m.du ?? 0,
                     channel: reg.deref(m.c) ?? '',
-                    at:      m.at ?? 0,
-                    ban:     m.bn ?? false
+                    at: m.at ?? 0,
+                    ban: m.bn ?? false
                 });
             }
         }
@@ -2384,16 +2115,7 @@ export default class DatabaseHandler
         return out;
     }
 
-    async addMute(g, u, {
-        mod = '',
-        exp = 0,
-        roles = [],
-        reason = '',
-        dur = 0,
-        channel = '',
-        ban = false
-    } = {})
-    {
+    async addMute(g, u, { mod = '', exp = 0, roles = [], reason = '', dur = 0, channel = '', ban = false } = {}) {
         const reg = await this.registryFor(g);
         const doc = await this.load('mute', {
             g,
@@ -2406,20 +2128,24 @@ export default class DatabaseHandler
             rl: reg.refAll(roles),
             rs: reg.ref(reason),
             du: dur,
-            c:  reg.ref(channel),
+            c: reg.ref(channel),
             at: Date.now(),
             bn: ban
         });
-        this._markDirty('mute', {
-            g,
-            u
-        }, `${g}:${u}`, doc);
+        this._markDirty(
+            'mute',
+            {
+                g,
+                u
+            },
+            `${g}:${u}`,
+            doc
+        );
 
         return doc;
     }
 
-    async removeMute(g, u)
-    {
+    async removeMute(g, u) {
         this._cache.mutes.delete(`${g}:${u}`);
         return this._deleteOne('Mute', {
             g,
@@ -2427,41 +2153,36 @@ export default class DatabaseHandler
         });
     }
 
-    getReactionRoles(g)
-    {
+    getReactionRoles(g) {
         return this.load('reactionRole', { g });
     }
 
-    async setReactionRoles(g, entries)
-    {
+    async setReactionRoles(g, entries) {
         const doc = await this.load('reactionRole', { g });
         doc.e = entries ?? [];
         this._markDirty('reactionRole', { g }, g, doc);
     }
 
-    addCase(g, data = {})
-    {
-
+    addCase(g, data = {}) {
         const prev = this._caseChain.get(g) ?? Promise.resolve();
-        const run = prev.then(() => this._addCaseInner(g, data), () => this._addCaseInner(g, data));
-        this._caseChain.set(g, run.then(() =>
-        {
-        }, () =>
-        {
-        }));
+        const run = prev.then(
+            () => this._addCaseInner(g, data),
+            () => this._addCaseInner(g, data)
+        );
+        this._caseChain.set(
+            g,
+            run.then(
+                () => {},
+                () => {}
+            )
+        );
         return run;
     }
 
-    async _addCaseInner(g, {
-        type = '',
-        user = '',
-        mod = '',
-        reason = '',
-        extra = '',
-        guildBan = false,
-        echo = ''
-    } = {})
-    {
+    async _addCaseInner(
+        g,
+        { type = '', user = '', mod = '', reason = '', extra = '', guildBan = false, echo = '' } = {}
+    ) {
         const guild = await this.getGuild(g);
         const n = (Number(guild.d?.ca) || 0) + 1;
         await this.saveGuild(g, {
@@ -2469,30 +2190,31 @@ export default class DatabaseHandler
             value: n
         });
 
-        const doc = reconcile('case', null, m => this._warn(m), {
+        const doc = reconcile('case', null, (m) => this._warn(m), {
             g,
             n
         });
         Object.assign(doc, {
             ty: String(type ?? ''),
-            u:  String(user ?? ''),
+            u: String(user ?? ''),
             md: String(mod ?? ''),
             rs: String(reason ?? ''),
             ex: String(extra ?? ''),
             at: Date.now()
         });
 
-        await this._replace('Case', {
-            g,
-            n
-        }, stripDefaults('case', doc));
+        await this._replace(
+            'Case',
+            {
+                g,
+                n
+            },
+            stripDefaults('case', doc)
+        );
 
-        const kind = echo || (guildBan
-            ? 'ban'
-            : '');
+        const kind = echo || (guildBan ? 'ban' : '');
 
-        if (kind && user)
-        {
+        if (kind && user) {
             this._caseGuard.set(`${kind}:${g}:${user}`, {
                 n,
                 at: Date.now()
@@ -2502,22 +2224,18 @@ export default class DatabaseHandler
         return n;
     }
 
-    takeCase(kind, g, u)
-    {
+    takeCase(kind, g, u) {
         const key = `${kind}:${g}:${u}`;
         const hit = this._caseGuard.get(key);
         const now = Date.now();
 
-        if (hit && now - hit.at < 30_000)
-        {
+        if (hit && now - hit.at < 30_000) {
             this._caseGuard.delete(key);
             return hit.n;
         }
 
-        for (const [k, v] of this._caseGuard)
-        {
-            if (now - v.at >= 30_000)
-            {
+        for (const [k, v] of this._caseGuard) {
+            if (now - v.at >= 30_000) {
                 this._caseGuard.delete(k);
             }
         }
@@ -2525,92 +2243,88 @@ export default class DatabaseHandler
         return null;
     }
 
-    takeBanCase(g, u)
-    {
+    takeBanCase(g, u) {
         return this.takeCase('ban', g, u);
     }
 
-    async getCases(g)
-    {
+    async getCases(g) {
         const rows = await this._findManyLean('Case', { g }, { sort: { n: -1 } });
-        return (rows ?? []).map(r => reconcile('case', r, m => this._warn(m)));
+        return (rows ?? []).map((r) => reconcile('case', r, (m) => this._warn(m)));
     }
 
-    async casesOf(g, u)
-    {
-        const rows = await this._findManyLean('Case', {
-            g,
-            u
-        }, { sort: { n: -1 } });
-        return (rows ?? []).map(r => reconcile('case', r, m => this._warn(m)));
+    async casesOf(g, u) {
+        const rows = await this._findManyLean(
+            'Case',
+            {
+                g,
+                u
+            },
+            { sort: { n: -1 } }
+        );
+        return (rows ?? []).map((r) => reconcile('case', r, (m) => this._warn(m)));
     }
 
-    async casesInvolving(g, u)
-    {
-        const rows = await this._findManyLean('Case', {
-            g,
-            $or: [
-                { u },
-                { md: u }
-            ]
-        }, { sort: { n: -1 } });
-        return (rows ?? []).map(r => reconcile('case', r, m => this._warn(m)));
+    async casesInvolving(g, u) {
+        const rows = await this._findManyLean(
+            'Case',
+            {
+                g,
+                $or: [{ u }, { md: u }]
+            },
+            { sort: { n: -1 } }
+        );
+        return (rows ?? []).map((r) => reconcile('case', r, (m) => this._warn(m)));
     }
 
-    async getCase(g, n)
-    {
+    async getCase(g, n) {
         return this._findOrNull('case', {
             g,
             n: Number(n)
         });
     }
 
-    async addCaseOutcome(g, u, {
-        type = '',
-        mod = '',
-        types = null,
-        limit = 5
-    } = {})
-    {
-        if (!g || !u || !type)
-        {
+    async addCaseOutcome(g, u, { type = '', mod = '', types = null, limit = 5 } = {}) {
+        if (!g || !u || !type) {
             return [];
         }
 
-        const rows = await this._findManyLean('Case', {
-            g,
-            u
-        }, {
-            sort: { n: -1 },
-            limit
-        });
+        const rows = await this._findManyLean(
+            'Case',
+            {
+                g,
+                u
+            },
+            {
+                sort: { n: -1 },
+                limit
+            }
+        );
         const updated = [];
 
-        for (const row of rows ?? [])
-        {
-            const doc = reconcile('case', row, m => this._warn(m));
+        for (const row of rows ?? []) {
+            const doc = reconcile('case', row, (m) => this._warn(m));
 
-            if (types && !types.includes(doc.ty))
-            {
+            if (types && !types.includes(doc.ty)) {
                 continue;
             }
 
-            doc.ou = Array.isArray(doc.ou)
-                ? doc.ou
-                : [];
+            doc.ou = Array.isArray(doc.ou) ? doc.ou : [];
 
-            if (!doc.ou.some(entry => entry?.t === type))
-            {
+            if (!doc.ou.some((entry) => entry?.t === type)) {
                 doc.ou.push({
-                    t:  String(type),
+                    t: String(type),
                     at: Date.now(),
                     md: String(mod ?? '')
                 });
 
-                await this._replace('Case', {
-                    g,
-                    n: doc.n
-                }, stripDefaults('case', doc));
+                await this._replace(
+                    'Case',
+                    {
+                        g,
+                        n: doc.n
+                    },
+                    stripDefaults('case', doc)
+                );
                 updated.push(doc.n);
             }
 
@@ -2620,4 +2334,3 @@ export default class DatabaseHandler
         return updated;
     }
 }
-

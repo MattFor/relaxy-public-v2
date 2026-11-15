@@ -9,25 +9,21 @@ const PRUNE_MS = 24 * 60 * 60 * 1000;
 let flushTimer = null;
 let pruneTimer = null;
 
-export const dayOf = (at = Date.now()) =>
-{
+export const dayOf = (at = Date.now()) => {
     const d = new Date(at);
 
-    return (d.getUTCFullYear() * 10000) + ((d.getUTCMonth() + 1) * 100) + d.getUTCDate();
+    return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
 };
 
-export const bump = (guildId, field, n = 1) =>
-{
-    if (!guildId || !(n > 0))
-    {
+export const bump = (guildId, field, n = 1) => {
+    if (!guildId || !(n > 0)) {
         return;
     }
 
     const key = `${guildId}:${dayOf()}`;
     const row = pending.get(key);
 
-    if (row)
-    {
+    if (row) {
         row[field] = (row[field] ?? 0) + n;
         return;
     }
@@ -35,40 +31,28 @@ export const bump = (guildId, field, n = 1) =>
     pending.set(key, { [field]: n });
 };
 
-export const flushStats = async (client) =>
-{
-    if (!pending.size)
-    {
+export const flushStats = async (client) => {
+    if (!pending.size) {
         return;
     }
 
     const draining = [...pending];
     pending.clear();
 
-    for (const [key, row] of draining)
-    {
+    for (const [key, row] of draining) {
         const [guildId, day] = key.split(':');
         const d = Number(day);
 
-        try
-        {
-
+        try {
             await client.module.database.bumpStats(guildId, d, row);
-        }
-        catch (error)
-        {
-
+        } catch (error) {
             const back = pending.get(key);
 
-            if (back)
-            {
-                for (const [field, n] of Object.entries(row))
-                {
+            if (back) {
+                for (const [field, n] of Object.entries(row)) {
                     back[field] = (back[field] ?? 0) + n;
                 }
-            }
-            else
-            {
+            } else {
                 pending.set(key, row);
             }
 
@@ -77,56 +61,40 @@ export const flushStats = async (client) =>
     }
 };
 
-export const pruneStats = async (client) =>
-{
-    const cutoff = dayOf(Date.now() - (RETENTION_DAYS * 24 * 60 * 60 * 1000));
+export const pruneStats = async (client) => {
+    const cutoff = dayOf(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
 
-    try
-    {
+    try {
         const n = await client.module.database.pruneStats(cutoff);
 
-        if (n)
-        {
+        if (n) {
             client.log('DATA', `DailyStats: pruned ${n} stats rows older than ${cutoff}.`);
         }
-    }
-    catch (error)
-    {
+    } catch (error) {
         client.log('ERROR', `DailyStats prune: ${error?.message ?? error}`);
     }
 };
 
-export const startDailyStats = (client) =>
-{
-    if (flushTimer)
-    {
+export const startDailyStats = (client) => {
+    if (flushTimer) {
         return;
     }
 
-    flushTimer = setInterval(() => flushStats(client).catch(() =>
-    {
-    }), FLUSH_MS);
-    pruneTimer = setInterval(() => pruneStats(client).catch(() =>
-    {
-    }), PRUNE_MS);
+    flushTimer = setInterval(() => flushStats(client).catch(() => {}), FLUSH_MS);
+    pruneTimer = setInterval(() => pruneStats(client).catch(() => {}), PRUNE_MS);
 
     flushTimer.unref?.();
     pruneTimer.unref?.();
 
-    pruneStats(client).catch(() =>
-    {
-    });
+    pruneStats(client).catch(() => {});
 };
-export const stopDailyStats = async (client) =>
-{
-    if (flushTimer)
-    {
+export const stopDailyStats = async (client) => {
+    if (flushTimer) {
         clearInterval(flushTimer);
         flushTimer = null;
     }
 
-    if (pruneTimer)
-    {
+    if (pruneTimer) {
         clearInterval(pruneTimer);
         pruneTimer = null;
     }
