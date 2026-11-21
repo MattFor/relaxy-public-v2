@@ -51,7 +51,7 @@
     "mongoose": "^9.7.1",
     "natural": "^8.1.1",
     "normalize-text": "^2.6.0",
-    "pretty-ms": "^9.3.0",
+    "pretty-ms": "^10.0.0",
     "queue": "^7.0.0",
     "replace-special-characters": "^1.2.7",
     "request": "^2.88.2",
