@@ -48,7 +48,7 @@
     "fs-extra": "^11.3.5",
     "fuse.js": "^7.4.2",
     "lodash": "^4.18.1",
-    "mongoose": "^9.7.1",
+    "mongoose": "^9.12.1",
     "natural": "^8.1.1",
     "normalize-text": "^2.6.0",
     "pretty-ms": "^9.3.0",
